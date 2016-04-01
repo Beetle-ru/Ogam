@@ -5,6 +5,8 @@ VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ogam", "Ogam\Ogam.csproj", "{C6405E1A-3B39-4795-B518-B738EB110488}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Testing", "Testing\Testing.csproj", "{5C70ABD2-DD44-491E-A458-E4B088D6D995}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{C6405E1A-3B39-4795-B518-B738EB110488}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C6405E1A-3B39-4795-B518-B738EB110488}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C6405E1A-3B39-4795-B518-B738EB110488}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C70ABD2-DD44-491E-A458-E4B088D6D995}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C70ABD2-DD44-491E-A458-E4B088D6D995}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C70ABD2-DD44-491E-A458-E4B088D6D995}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C70ABD2-DD44-491E-A458-E4B088D6D995}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
