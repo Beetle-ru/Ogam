@@ -69,6 +69,7 @@ namespace Ogam.Remote.Tcp {
                         Console.WriteLine("{0}:{1} >> {2}", endpoint.Address, endpoint.Port, msg);
                         Console.WriteLine("{0}:{1} << {2}", endpoint.Address, endpoint.Port, str);
                     } catch (Exception ex) {
+                        Console.WriteLine("{0}:{1} !!!>> {2}", endpoint.Address, endpoint.Port, ex.Message);
                         var resp = Encoding.Unicode.GetBytes(string.Format("(throw-exception {0})", OgamSerializer.Serialize(ex.Message)));
                         client.GetStream().Write(resp, 0, resp.Length);
                         Console.ForegroundColor = ConsoleColor.Red;
