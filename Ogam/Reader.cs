@@ -185,7 +185,7 @@ namespace Ogam {
                     return buf;
                 }
 
-                buf = string.Concat(buf, c);
+                
 
                 if (c == '\\') {
                     while (c == '\\') {
@@ -199,6 +199,7 @@ namespace Ogam {
                     }
                 }
                 else {
+                    buf = string.Concat(buf, c);
                     p++;
                     c = p < str.Length ? str[p] : '\0';
                 }
