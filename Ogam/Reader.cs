@@ -5,7 +5,6 @@ namespace Ogam {
     public class Reader {
         static public object Parse(string str) {
             var p = 0;
-            //var programm = new SPair(new SSymbol("begin"));
             var programm = new Pair();
 
             while (p < str.Length) {
@@ -198,20 +197,6 @@ namespace Ogam {
                     p++;
                     c = p < str.Length ? str[p] : '\0';
                 }
-
-                //buf = string.Concat(buf, c);
-                //p++;
-                //c = p < str.Length ? str[p] : '\0';
-
-                //if (c == '\\') {
-                //    p++;
-                //    c = p < str.Length ? str[p] : '\0';
-
-                //    buf = string.Concat(buf, c);
-
-                //    p++;
-                //    c = p < str.Length ? str[p] : '\0';
-                //}
             }
 
             p++;

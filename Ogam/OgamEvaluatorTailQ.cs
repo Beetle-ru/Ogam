@@ -128,12 +128,6 @@ namespace Ogam {
                             val = MakeLambda(Operands(exp as Pair), env);
                             break;
 
-                            //case "function":
-                            //    enviroment = EvFunction(Operands(exp as Pair), env);
-                            //    env = enviroment;
-                            //    val = null;
-                            //    break;
-
                         default: // APPLY
 
                             var oper = Car(exp);
