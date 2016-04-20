@@ -201,25 +201,6 @@ namespace Ogam {
                     p++;
                     c = p < str.Length ? str[p] : '\0';
                 }
-<<<<<<< HEAD
-=======
-
-                
-
-                //buf = string.Concat(buf, c);
-                //p++;
-                //c = p < str.Length ? str[p] : '\0';
-
-                //if (c == '\\') {
-                //    p++;
-                //    c = p < str.Length ? str[p] : '\0';
-
-                //    buf = string.Concat(buf, c);
-
-                //    p++;
-                //    c = p < str.Length ? str[p] : '\0';
-                //}
->>>>>>> bea060cfd835b8197172ee53c934223bb09f27cf
             }
 
             p++;

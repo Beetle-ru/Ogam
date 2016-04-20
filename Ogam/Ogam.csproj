@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{0240C28C-D460-42B6-99BE-8CC654BCFB2B}</ProjectGuid>
+    <ProjectGuid>{C6405E1A-3B39-4795-B518-B738EB110488}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Ogam</RootNamespace>
