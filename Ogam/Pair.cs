@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Ogam {
     public class Pair {
@@ -38,21 +39,30 @@ namespace Ogam {
                 return "()";
             }
 
-            var str = "(";
+            var sb = new StringBuilder();
 
-            str += Car != null ? O2String(Car) : "()";
+            //var str = "(";
+            sb.Append("(");
+
+            //str += Car != null ? O2String(Car) : "()";
+
+            sb.Append(Car != null ? O2String(Car) : "()");
             
             if (Cdr is Pair) {
                 var cndr = Cdr as Pair;
                 while (cndr != null) {
-                    str += " " + O2String(cndr.Car);
+                    //str += " " + O2String(cndr.Car);
+                    sb.Append(" ");
+                    sb.Append(O2String(cndr.Car));
                     if (cndr.Cdr is Pair) {
                         cndr = cndr.Cdr as Pair;
                     }
                     else {
                         if (cndr.Cdr != null) {
-                            str += " . ";
-                            str += O2String(cndr.Cdr);
+                            //str += " . ";
+                            sb.Append(" . ");
+                            //str += O2String(cndr.Cdr);
+                            sb.Append(O2String(cndr.Cdr));
                         }
                         break;
                     }
@@ -62,14 +72,17 @@ namespace Ogam {
             }
             else {
                 if (Cdr != null) {
-                    str += " . ";
-                    str += O2String(Cdr);
+                    //str += " . ";
+                    sb.Append(" . ");
+                    //str += O2String(Cdr);
+                    sb.Append(O2String(Cdr));
                 }
             }
 
             
-
-            return str + ")";
+            sb.Append(")");
+            return sb.ToString();
+            //return str + ")";
         }
 
         public static string O2String(object o) {

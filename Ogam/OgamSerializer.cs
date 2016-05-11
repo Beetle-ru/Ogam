@@ -203,6 +203,7 @@ namespace Ogam {
 
 
                 current = current.Add(new Pair(name.ToSymbol(), value));
+                
             }
 
             return root;

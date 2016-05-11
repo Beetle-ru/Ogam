@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -19,7 +20,6 @@ namespace Ogam.Remote.Tcp {
             if (evaluator == null) {
                 Evaluator = StingExtension.Evaluator;
             }
-
             _listener = new TcpListener(IPAddress.Any, Port);
             _listener.Start();
 
@@ -33,6 +33,7 @@ namespace Ogam.Remote.Tcp {
             while (true) {
                 var client = listener.AcceptTcpClient();
                 var Thread = new Thread(ClientThread);
+                Thread.IsBackground = true;
                 Thread.Start(client);
             }
         }
@@ -41,7 +42,8 @@ namespace Ogam.Remote.Tcp {
             var client = (TcpClient) o;
             var endpoint = (IPEndPoint)client.Client.RemoteEndPoint;
 
-            Console.WriteLine("{0}:{1} >> CONNECTED", endpoint.Address, endpoint.Port);
+            //Console.WriteLine("{0}:{1} >> CONNECTED", endpoint.Address, endpoint.Port);
+            Log(string.Format("{0}:{1} >> CONNECTED", endpoint.Address, endpoint.Port));
 
             try {
                 var buffer = new byte[BufferSize];
@@ -57,6 +59,8 @@ namespace Ogam.Remote.Tcp {
                     }
 
                     try {
+                        Log(string.Format("{0}:{1} >> {2}", endpoint.Address, endpoint.Port, msg));
+
                         var result = msg.OgamEval(Evaluator);
 
                         //var str = result != null ? result.ToString() : "#nil";
@@ -66,8 +70,10 @@ namespace Ogam.Remote.Tcp {
                         var resp = Encoding.Unicode.GetBytes(str);
                         client.GetStream().Write(resp, 0, resp.Length);
 
-                        Console.WriteLine("{0}:{1} >> {2}", endpoint.Address, endpoint.Port, msg);
-                        Console.WriteLine("{0}:{1} << {2}", endpoint.Address, endpoint.Port, str);
+                        //Console.WriteLine("{0}:{1} >> {2}", endpoint.Address, endpoint.Port, msg);
+                        //Console.WriteLine("{0}:{1} << {2}", endpoint.Address, endpoint.Port, str);
+
+                        Log(string.Format("{0}:{1} << {2}", endpoint.Address, endpoint.Port, str));
                     } catch (Exception ex) {
                         Console.WriteLine("{0}:{1} !!!>> {2}", endpoint.Address, endpoint.Port, msg);
                         var resp = Encoding.Unicode.GetBytes(string.Format("(throw-exception {0})", OgamSerializer.Serialize(ex.Message)));
@@ -88,6 +94,19 @@ namespace Ogam.Remote.Tcp {
                 Console.WriteLine("{0}:{1} >> {2}", endpoint.Address, endpoint.Port, ex.Message);
             }
         }
+
+        void Log(string msg) {
+            ((Action)delegate() {
+                var standardOutput = new StreamWriter(Console.OpenStandardOutput());
+                standardOutput.AutoFlush = true;
+                //var bytes = Encoding.Convert(Encoding.Default, Console.OutputEncoding, Encoding.Default.GetBytes(msg + Environment.NewLine));
+                standardOutput.Write(msg+ Environment.NewLine);
+                //standardOutput.Write(Console.OutputEncoding.GetString(bytes));
+            }).BeginInvoke(null, null);
+        }
+
+        
+
 
         static public void HoldProcess() {
             var processName = Process.GetCurrentProcess().ProcessName;
