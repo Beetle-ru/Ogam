@@ -87,6 +87,7 @@ namespace Ogam.Remote.Tcp {
                         while (_networkStream.DataAvailable) {
                             bytes = _networkStream.Read(buff, 0, buff.Length);
                             rcvMsg += Encoding.Unicode.GetString(buff, 0, bytes);
+                            Thread.Sleep(100); // TODO make end sequenses support
                         }
 
                         if (IsLog) {
@@ -100,8 +101,7 @@ namespace Ogam.Remote.Tcp {
                     else {
                         Console.WriteLine("Connection cat't write");
                     }
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     Console.WriteLine(ex.Message);
                 }
 
