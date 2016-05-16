@@ -74,7 +74,7 @@ namespace Ogam.Remote.Tcp {
 
                     if (_networkStream.CanWrite && _networkStream.CanRead) {
 
-                        var buff = Encoding.Unicode.GetBytes(cmd);
+                        var buff = Encoding.Unicode.GetBytes(cmd + '\0'); // add EOS
                         _networkStream.Write(buff, 0, buff.Length);
                         if (IsLog) {
                             Console.WriteLine("[{0}]-{1}:{2} << {3}", Name, Host, Port, cmd);
@@ -84,10 +84,23 @@ namespace Ogam.Remote.Tcp {
                         var bytes = _networkStream.Read(buff, 0, buff.Length);
 
                         var rcvMsg = Encoding.Unicode.GetString(buff, 0, bytes);
-                        while (_networkStream.DataAvailable) {
-                            bytes = _networkStream.Read(buff, 0, buff.Length);
-                            rcvMsg += Encoding.Unicode.GetString(buff, 0, bytes);
-                            Thread.Sleep(100); // TODO make end sequenses support
+
+                        var timeBefore = DateTime.Now;
+                        
+                        while (true) {
+                            while (_networkStream.DataAvailable) {
+                                bytes = _networkStream.Read(buff, 0, buff.Length);
+                                rcvMsg += Encoding.Unicode.GetString(buff, 0, bytes);
+                                //Thread.Sleep(100); // TODO make end sequenses support
+                            }
+
+                            if (rcvMsg.Length > 0 && rcvMsg.Last() == '\0') break; // EOS
+
+                            if (timeBefore.AddSeconds(10) <= DateTime.Now) break; // timeOut
+
+                            if (!_networkStream.DataAvailable) {
+                                Thread.Sleep(50);
+                            }
                         }
 
                         if (IsLog) {

@@ -53,9 +53,28 @@ namespace Ogam.Remote.Tcp {
                 while ((count = client.GetStream().Read(buffer, 0, buffer.Length)) > 0) {
                     var msg = Encoding.Unicode.GetString(buffer, 0, count);
 
-                    while (client.GetStream().DataAvailable) {
-                        count = client.GetStream().Read(buffer, 0, buffer.Length);
-                        msg += Encoding.Unicode.GetString(buffer, 0, count);
+                    //while (client.GetStream().DataAvailable) {
+                    //    count = client.GetStream().Read(buffer, 0, buffer.Length);
+                    //    msg += Encoding.Unicode.GetString(buffer, 0, count);
+                    //}
+
+                    var timeBefore = DateTime.Now;
+
+                    while (true) {
+                        while (client.GetStream().DataAvailable) {
+                            count = client.GetStream().Read(buffer, 0, buffer.Length);
+                            msg += Encoding.Unicode.GetString(buffer, 0, count);
+                        }
+
+                        if (msg.Length > 0 && msg.Last() == '\0')
+                            break; // EOS
+
+                        if (timeBefore.AddSeconds(10) <= DateTime.Now)
+                            break; // timeOut
+
+                        if (!client.GetStream().DataAvailable) {
+                            Thread.Sleep(50);
+                        }
                     }
 
                     try {
@@ -65,7 +84,7 @@ namespace Ogam.Remote.Tcp {
 
                         //var str = result != null ? result.ToString() : "#nil";
 
-                        var str = OgamSerializer.Serialize(result);
+                        var str = OgamSerializer.Serialize(result) + '\0'; //add EOS
 
                         var resp = Encoding.Unicode.GetBytes(str);
                         client.GetStream().Write(resp, 0, resp.Length);
@@ -76,7 +95,7 @@ namespace Ogam.Remote.Tcp {
                         Log(string.Format("{0}:{1} << {2}", endpoint.Address, endpoint.Port, str));
                     } catch (Exception ex) {
                         Console.WriteLine("{0}:{1} !!!>> {2}", endpoint.Address, endpoint.Port, msg);
-                        var resp = Encoding.Unicode.GetBytes(string.Format("(throw-exception {0})", OgamSerializer.Serialize(ex.Message)));
+                        var resp = Encoding.Unicode.GetBytes(string.Format("(throw-exception {0})", OgamSerializer.Serialize(ex.Message)) + '\0');
                         client.GetStream().Write(resp, 0, resp.Length);
                         Console.ForegroundColor = ConsoleColor.Red;
                         Console.WriteLine(ex);

@@ -272,7 +272,7 @@ namespace Ogam {
         }
 
         private static bool IsWhite(char c) {
-            return c == ' ' || c == '\n' || c == '\r' || c == '\t';
+            return c == ' ' || c == '\n' || c == '\r' || c == '\t' || c == '\0';
         }
 
         private static bool IsDigit(char c) {
