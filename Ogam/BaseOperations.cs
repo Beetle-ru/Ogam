@@ -29,6 +29,8 @@ namespace Ogam {
             evaluator.Extend("exit", Exit);
 
             evaluator.Extend("writeln", Writeln);
+
+            evaluator.Extend("begin-invoke", BeginInvoke);
         }
 
         private static object Add(Pair args) {
@@ -191,6 +193,17 @@ namespace Ogam {
         static public object Writeln(Pair args) {
             Console.WriteLine(args.AsString());
             return null;
+        }
+
+        static object BeginInvoke(Pair args) {
+            var funct = args.AsObject() as Call;
+
+            if (funct == null) {
+                return false;
+            }
+
+            funct.BeginInvoke(args.MoveNext(), null, null);
+            return true;
         }
     }
 }

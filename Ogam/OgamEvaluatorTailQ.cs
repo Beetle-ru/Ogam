@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 
@@ -127,6 +128,9 @@ namespace Ogam {
                         case "lambda":
                             val = MakeLambda(Operands(exp as Pair), env);
                             break;
+                        case "load":
+                            val = Load(Operands(exp as Pair), env);
+                            break;
 
                         default: // APPLY
 
@@ -195,6 +199,41 @@ namespace Ogam {
                 }
             }
             return val;
+        }
+
+        private object Load(Pair arguments, Pair env) {
+            if (arguments == null)
+                return null;
+
+            object result = null;
+            var cndr = arguments;
+            var i = 0;
+
+            while (cndr != null) {
+                var exp = cndr.Car;
+                if (exp != null) {
+                    result = Eval(exp, ref env);
+
+                    var fileName = (string) result;
+                    if (!string.IsNullOrWhiteSpace(fileName)) {
+                        if (File.Exists(fileName)) {
+                            var contant = File.ReadAllText(fileName);
+                            result = Eval(contant);
+                        }
+                        else {
+                            throw new Exception(string.Format("EVALUATOR:Load{0}file not found: \"{1}\"", Environment.NewLine, fileName));
+                        }
+                    }
+                    else {
+                        throw new Exception(string.Format("EVALUATOR:Load{0}argument {1} is not a string", Environment.NewLine, i));
+                    }
+                }
+                
+                i++;
+                cndr = cndr.Cdr as Pair;
+            }
+
+            return result;
         }
 
 
