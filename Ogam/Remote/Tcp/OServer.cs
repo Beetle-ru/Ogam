@@ -116,7 +116,7 @@ namespace Ogam.Remote.Tcp {
 
         void Log(string msg) {
             ((Action)delegate() {
-                var standardOutput = new StreamWriter(Console.OpenStandardOutput());
+                var standardOutput = new StreamWriter(Console.OpenStandardOutput(), Console.OutputEncoding);
                 standardOutput.AutoFlush = true;
                 //var bytes = Encoding.Convert(Encoding.Default, Console.OutputEncoding, Encoding.Default.GetBytes(msg + Environment.NewLine));
                 standardOutput.Write(msg+ Environment.NewLine);
