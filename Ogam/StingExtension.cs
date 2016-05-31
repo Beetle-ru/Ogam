@@ -32,25 +32,27 @@ namespace Ogam {
 
         public static object OgamEval(this string expr, IEvaluator evaluator, params object[] args) {
             //lock (evaluator) {
-                return evaluator.Eval(String.Format(expr, O2Strings(args)));
+                //return evaluator.Eval(String.Format(expr, O2Strings(args)));
+            return evaluator.Eval(String.Format(expr, O2Strings(args)));
             //}
         }
 
         private static object[] O2Strings(object[] args) {
-            var strs = new List<object>();
+            var strs = new List<string>();
             foreach (var o in args) {
-                if (IsBaseType(o)) {
-                    strs.Add(string.Format(" {0}", o));
-                } else if (o is string) {
-                    var str = (string) o;
-                    str = str.Replace("\"", "\\\"");
-                    strs.Add(string.Format(" \"{0}\"", str));
-                } else if (o is bool) {
-                    strs.Add(string.Format(" {0}", ((bool)o ? "#t" : "#f")));
-                } else {
-                    //strs.Add(string.Format(" \"{0}\"", Pack(o)));
-                    strs.Add(string.Format(" \"{0}\"", o.ToString()));
-                }
+                strs.Add(Pair.O2String(o));
+                //if (IsBaseType(o)) {
+                //    strs.Add(string.Format(" {0}", o));
+                //} else if (o is string) {
+                //    var str = (string) o;
+                //    str = str.Replace("\"", "\\\"");
+                //    strs.Add(string.Format(" \"{0}\"", str));
+                //} else if (o is bool) {
+                //    strs.Add(string.Format(" {0}", ((bool)o ? "#t" : "#f")));
+                //} else {
+                //    //strs.Add(string.Format(" \"{0}\"", Pack(o)));
+                //    strs.Add(string.Format(" \"{0}\"", o.ToString()));
+                //}
             }
 
             return strs.ToArray();
