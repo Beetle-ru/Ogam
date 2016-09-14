@@ -17,6 +17,9 @@ namespace Ogam.Remote.Tcp {
         public IEvaluator Evaluator;
 
         public OServer(int Port, IEvaluator evaluator = null) {
+
+            Console.SetOut(new LogTextWriter(Console.Out));
+
             if (evaluator == null) {
                 Evaluator = StingExtension.Evaluator;
             }
