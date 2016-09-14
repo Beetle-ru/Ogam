@@ -42,6 +42,7 @@
   <ItemGroup>
     <Compile Include="BaseOperations.cs" />
     <Compile Include="IEvaluator.cs" />
+    <Compile Include="LogTextWriter.cs" />
     <Compile Include="OgamEvaluatorTailQ.cs" />
     <Compile Include="OgamEvaluatorTail.cs" />
     <Compile Include="OgamEvaluator.cs" />
