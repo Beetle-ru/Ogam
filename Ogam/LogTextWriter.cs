@@ -1,5 +1,6 @@
 ﻿    using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using System.Text;
@@ -44,7 +45,7 @@ namespace Ogam
 
         public static string GetHeader()
         {
-            return $"********** LOG_EVENT_MESSAGE **********->{DateTime.Now:HHmmss:fff}->\n";
+            return $"********** LOG_EVENT_MESSAGE **********->{Process.GetCurrentProcess().ProcessName}({Process.GetCurrentProcess().Id})->{DateTime.Now:HHmmss:fff}->\n";
         }
 
         public override void WriteLine(string s)
