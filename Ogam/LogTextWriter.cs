@@ -23,17 +23,20 @@ namespace Ogam
                 bool hasSmth = false;
                 while (true)
                 {
+                    var res = string.Empty;
+
                     lock (_msgQueue)
                     {
                         hasSmth = _msgQueue.Any();
                         if (hasSmth)
                         {
-                            var res = _msgQueue.Dequeue();
-                            _tw.WriteLine(res);
+                            res = _msgQueue.Dequeue();
                         }
                     }
 
-                    if (!hasSmth)
+                    if (hasSmth)
+                        _tw.WriteLine(res);
+                    else
                         Thread.Sleep(500);
                 }
             });
