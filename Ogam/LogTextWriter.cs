@@ -41,7 +41,7 @@ namespace Ogam {
 
         public static string GetHeader() {
             return
-                $"{Environment.NewLine}********** EVENT-{Process.GetCurrentProcess().ProcessName}[{Process.GetCurrentProcess().Id}]-{DateTime.Now:HHmmss:fff} **********{Environment.NewLine}";
+                $"{Environment.NewLine}---------- EVENT-{Process.GetCurrentProcess().ProcessName}[{Process.GetCurrentProcess().Id}]-{DateTime.Now:YYYYMMdd:HHmmss:fff} ----------{Environment.NewLine}";
         }
 
         public override void WriteLine(string s) {
