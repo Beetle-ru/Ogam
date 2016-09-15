@@ -17,7 +17,6 @@ namespace Ogam.Remote.Tcp {
         public IEvaluator Evaluator;
 
         public OServer(int Port, IEvaluator evaluator = null) {
-
             Console.SetOut(new LogTextWriter(Console.Out));
 
             if (evaluator == null) {
@@ -32,7 +31,7 @@ namespace Ogam.Remote.Tcp {
         }
 
         private void ListenerHandler(object o) {
-            var listener = (TcpListener)o;
+            var listener = (TcpListener) o;
             while (true) {
                 var client = listener.AcceptTcpClient();
                 var Thread = new Thread(ClientThread);
@@ -43,10 +42,9 @@ namespace Ogam.Remote.Tcp {
 
         private void ClientThread(object o) {
             var client = (TcpClient) o;
-            var endpoint = (IPEndPoint)client.Client.RemoteEndPoint;
+            var endpoint = (IPEndPoint) client.Client.RemoteEndPoint;
 
-            //Console.WriteLine("{0}:{1} >> CONNECTED", endpoint.Address, endpoint.Port);
-            Log(string.Format("{0}:{1} >> CONNECTED", endpoint.Address, endpoint.Port));
+            Console.WriteLine($"(client-connected \"{endpoint.Address}:{endpoint.Port}\")");
 
             try {
                 var buffer = new byte[BufferSize];
@@ -79,58 +77,48 @@ namespace Ogam.Remote.Tcp {
                             Thread.Sleep(50);
                         }
                     }
-
+                    var transactLog = new StringBuilder();
+                    transactLog.AppendLine($"(start-transaction \"{endpoint.Address}:{endpoint.Port}\")");
                     try {
-                        Log(string.Format("{0}:{1} >> {2}", endpoint.Address, endpoint.Port, msg));
+                        transactLog.AppendLine($">> {msg}");
 
                         var result = msg.OgamEval(Evaluator);
-
-                        //var str = result != null ? result.ToString() : "#nil";
 
                         var str = OgamSerializer.Serialize(result) + '\0'; //add EOS
 
                         var resp = Encoding.Unicode.GetBytes(str);
                         client.GetStream().Write(resp, 0, resp.Length);
 
-                        //Console.WriteLine("{0}:{1} >> {2}", endpoint.Address, endpoint.Port, msg);
-                        //Console.WriteLine("{0}:{1} << {2}", endpoint.Address, endpoint.Port, str);
+                        transactLog.AppendLine($"<< {str}");
+                    }
+                    catch (Exception ex) {
+                        var errResp = $"(throw-exception {OgamSerializer.Serialize(ex.Message)})";
 
-                        Log(string.Format("{0}:{1} << {2}", endpoint.Address, endpoint.Port, str));
-                    } catch (Exception ex) {
-                        Console.WriteLine("{0}:{1} !!!>> {2}", endpoint.Address, endpoint.Port, msg);
-                        var resp = Encoding.Unicode.GetBytes(string.Format("(throw-exception {0})", OgamSerializer.Serialize(ex.Message)) + '\0');
+                        transactLog.AppendLine($">> {errResp}");
+
+                        var resp = Encoding.Unicode.GetBytes(errResp + '\0');
                         client.GetStream().Write(resp, 0, resp.Length);
                         Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine(ex);
+
+                        transactLog.AppendLine($"(stack-trace \"{ex.StackTrace}\")");
+
                         Console.ResetColor();
                     }
+
+                    Console.WriteLine(transactLog.ToString().Trim());
                 }
-            } catch (Exception ex) {
-                Console.WriteLine("{0}:{1} >> {2}", endpoint.Address, endpoint.Port, ex.Message);
+            }
+            catch (Exception ex) {
+                Console.WriteLine($"(error \"{endpoint.Address}:{endpoint.Port}\" \"{ex.Message}\")");
             }
 
             try {
                 client.Close();
             }
             catch (Exception ex) {
-                Console.WriteLine("{0}:{1} >> {2}", endpoint.Address, endpoint.Port, ex.Message);
+                Console.WriteLine($"(error \"{endpoint.Address}:{endpoint.Port}\" \"{ex.Message}\")");
             }
         }
-
-        void Log(string msg) {
-            //((Action)delegate() {
-            //    var standardOutput = new StreamWriter(Console.OpenStandardOutput(), Console.OutputEncoding);
-            //    standardOutput.AutoFlush = true;
-            //    //var bytes = Encoding.Convert(Encoding.Default, Console.OutputEncoding, Encoding.Default.GetBytes(msg + Environment.NewLine));
-            //    standardOutput.Write(msg+ Environment.NewLine);
-            //    //standardOutput.Write(Console.OutputEncoding.GetString(bytes));
-            //}).BeginInvoke(null, null);
-
-            Console.WriteLine(msg);
-        }
-
-        
-
 
         static public void HoldProcess() {
             var processName = Process.GetCurrentProcess().ProcessName;
@@ -138,8 +126,11 @@ namespace Ogam.Remote.Tcp {
 
             Console.ForegroundColor = ConsoleColor.Green;
 
-            Console.WriteLine("The {0} is ready", processName);
-            Console.WriteLine("Press <Enter> to terminate {0}", processName);
+            var msg = new StringBuilder();
+
+            msg.AppendLine($"The {processName} is ready");
+            msg.AppendLine($"Press <Enter> to terminate {processName}");
+            Console.WriteLine(msg.ToString().Trim());
 
             Console.ForegroundColor = defColor;
 

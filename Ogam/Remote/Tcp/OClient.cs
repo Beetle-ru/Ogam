@@ -68,17 +68,19 @@ namespace Ogam.Remote.Tcp {
 
                 try {
                     if (_networkStream == null) {
-                        Console.WriteLine("Connection is fault");
+                        Console.WriteLine($"(connection-error \"[{Name}]{Host}:{Port}\" \"Connection is fault\")");
                         return null;
                     }
 
                     if (_networkStream.CanWrite && _networkStream.CanRead) {
 
+                        var transactLog = new StringBuilder();
+                        transactLog.AppendLine($"(start-transaction \"[{Name}]{Host}:{Port}\")");
+
                         var buff = Encoding.Unicode.GetBytes(cmd + '\0'); // add EOS
                         _networkStream.Write(buff, 0, buff.Length);
-                        if (IsLog) {
-                            Console.WriteLine("[{0}]-{1}:{2} << {3}", Name, Host, Port, cmd);
-                        }
+
+                        transactLog.AppendLine($"<< {cmd}");
 
                         buff = new byte[BufferSize];
                         var bytes = _networkStream.Read(buff, 0, buff.Length);
@@ -103,8 +105,11 @@ namespace Ogam.Remote.Tcp {
                             }
                         }
 
+
+                        transactLog.AppendLine($">> {rcvMsg}");
+
                         if (IsLog) {
-                            Console.WriteLine("[{0}]-{1}:{2} >> {3}", Name, Host, Port, rcvMsg);
+                            Console.WriteLine(transactLog.ToString().Trim());
                         }
 
                         var resultO = _receivEvaluator.Eval(rcvMsg);
@@ -112,10 +117,10 @@ namespace Ogam.Remote.Tcp {
                         return resultO;
                     } 
                     else {
-                        Console.WriteLine("Connection cat't write");
+                        Console.WriteLine($"(connection-error \"[{Name}]{Host}:{Port}\" \"Data can't write\")");
                     }
                 } catch (Exception ex) {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine($"(connection-error \"[{Name}]{Host}:{Port}\" \"{ex.Message}\")");
                 }
 
                 return null;
@@ -127,7 +132,7 @@ namespace Ogam.Remote.Tcp {
 
 
                 
-                Console.WriteLine("BEGIN CONNECT TO {0}:{1}", hostname, port);
+                Console.WriteLine($"(connecting \"{hostname}:{port}\")");
                 var client = new TcpClient();
                 client.ReceiveTimeout = ReadTimeout;
                 client.SendTimeout = ReadTimeout;
@@ -138,10 +143,10 @@ namespace Ogam.Remote.Tcp {
                     _networkStream = client.GetStream();
                     _networkStream.WriteTimeout = ReadTimeout;
                     _networkStream.ReadTimeout = ReadTimeout;
-                    Console.WriteLine("CONNECT SUCESFULE TO {0}:{1}", hostname, port);
+                    Console.WriteLine($"(connection-stabilized \"{hostname}:{port}\")");
                 }
                 catch (Exception ex) {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine($"(connection-error \"{ex.Message}\")");
                 }
 
                 return client;
