@@ -45,9 +45,8 @@ namespace Ogam {
         }
 
         public override void WriteLine(string s) {
-            var astr = string.Format(s);
             lock (_msgQueue) {
-                _msgQueue.Enqueue(GetHeader() + astr);
+                _msgQueue.Enqueue(GetHeader() + s);
             }
         }
 
