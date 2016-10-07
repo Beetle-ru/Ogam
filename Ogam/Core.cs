@@ -82,10 +82,10 @@ namespace Ogam {
         }
 
         private static object Eq(object[] args) {
-            var obj = args.SafeAt(0);
+            var obj = args.ObjectAt(0);
 
             for (var i = 1; i < args.Length; i++) {
-                if (!Equals(obj, args.SafeAt(i))) {
+                if (!Equals(obj, args.ObjectAt(i))) {
                     return false;
                 }
             }
@@ -106,37 +106,37 @@ namespace Ogam {
         }
 
         private static object Cons(object[] args) {
-            return new Pair(args.SafeAt(0), args.SafeAt(1));
+            return new Pair(args.ObjectAt(0), args.ObjectAt(1));
         }
 
         private static object Car(object[] args) {
-            var pair = args.SafeAt(0) as Pair;
+            var pair = args.ObjectAt(0) as Pair;
 
             return pair?.Car;
         }
 
         private static object Cdr(object[] args) {
-            var pair = args.SafeAt(0) as Pair;
+            var pair = args.ObjectAt(0) as Pair;
 
             return pair?.Cdr;
         }
 
         private static object SetCar(object[] args) {
-            var pair = args.SafeAt(0) as Pair;
+            var pair = args.ObjectAt(0) as Pair;
             if (pair == null)
                 return null;
 
-            pair.Car = args.SafeAt(1);
+            pair.Car = args.ObjectAt(1);
 
             return pair;
         }
 
         private static object SetCdr(object[] args) {
-            var pair = args.SafeAt(0) as Pair;
+            var pair = args.ObjectAt(0) as Pair;
             if (pair == null)
                 return null;
 
-            pair.Cdr = args.SafeAt(1);
+            pair.Cdr = args.ObjectAt(1);
 
             return pair;
         }
@@ -184,7 +184,7 @@ namespace Ogam {
         }
 
         static public object Writeln(object[] args) {
-            Console.WriteLine(args.SafeAt(0));
+            Console.WriteLine(args.ObjectAt(0));
             return null;
         }
 
@@ -202,13 +202,13 @@ namespace Ogam {
         }
 
         static object BeginInvoke(object[] args) {
-            var funct = args.SafeAt(0) as FunctionCall;
+            var funct = args.ObjectAt(0) as FunctionCall;
 
             if (funct == null) {
                 return false;
             }
 
-            funct.BeginInvoke((object[])args.SafeAt(1), null, null);
+            funct.BeginInvoke((object[])args.ObjectAt(1), null, null);
             return true;
         }
     }

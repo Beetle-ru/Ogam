@@ -13,8 +13,8 @@ namespace Ogam {
         void Extend(string symbol, FunctionCall call);
     }
 
-    public static class ListExtension {
-        public static object SafeAt(this object[] lst, int index) {
+    public static class ArrayExtension {
+        public static object ObjectAt(this object[] lst, int index) {
             if (lst == null) return null;
 
             if (index > lst.Length || index < 0) return null;
@@ -23,19 +23,19 @@ namespace Ogam {
         }
 
         public static string StringAt(this object[] lst, int index) {
-            return Convert.ToString(lst.SafeAt(index));
+            return Convert.ToString(lst.ObjectAt(index));
         }
 
         public static int IntAt(this object[] lst, int index) {
-            return Convert.ToInt32(lst.SafeAt(index));
+            return Convert.ToInt32(lst.ObjectAt(index));
         }
 
         public static double DoubleAt(this object[] lst, int index) {
-            return Convert.ToDouble(lst.SafeAt(index));
+            return Convert.ToDouble(lst.ObjectAt(index));
         }
 
         public static bool BoolAt(this object[] lst, int index) {
-            return Convert.ToBoolean(lst.SafeAt(index));
+            return Convert.ToBoolean(lst.ObjectAt(index));
         }
     }
 }
