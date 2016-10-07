@@ -1,22 +1,23 @@
 using System;
+using System.Collections.Generic;
 
 namespace Ogam {
 	public class Lambda {
 	    public string Id;
-		public Pair Arguments;
-		public Pair Expression;
-		public Pair Enviroment;
+        public Symbol[] ArgumentNames;
+        public object[] SubProgramm;
+		public EnviromentFrame Closure;
 
-		public Lambda(Pair arguments, Pair expression, Pair enviroment) {
-			Arguments = arguments;
-			Expression = expression;
-			Enviroment = enviroment;
+		public Lambda(Symbol[] argumentNames, object[] subProgramm, EnviromentFrame closure) {
+            ArgumentNames = argumentNames;
+		    SubProgramm = subProgramm;
+            Closure = closure;
 		}
 
 		public Lambda() {
-			Arguments = new Pair();
-			Expression = new Pair();
-			Enviroment = new Pair();
+            ArgumentNames = new Symbol[0];
+		    SubProgramm = new object[0];
+            Closure = new EnviromentFrame();
 		}
 	}
 }

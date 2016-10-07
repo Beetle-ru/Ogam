@@ -205,5 +205,22 @@ namespace Ogam {
 
             return i;
         }
+
+
+        public static object GetCarOrNull(object obj) {
+            var pair = obj as Pair;
+            if (pair == null)
+                return null;
+
+            return pair.Car;
+        }
+
+        public static object GetCdrOrNull(object obj) {
+            var pair = obj as Pair;
+            if (pair == null)
+                return null;
+
+            return pair.Cdr;
+        }
     }
 }

@@ -5,10 +5,37 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Ogam {
-    public delegate object Call(Pair arguments);
+    public delegate object FunctionCall(object[] arguments);
 
     public interface IEvaluator {
         object Eval(string line);
-        void Extend(string symbol, Call call);
+
+        void Extend(string symbol, FunctionCall call);
+    }
+
+    public static class ListExtension {
+        public static object SafeAt(this object[] lst, int index) {
+            if (lst == null) return null;
+
+            if (index > lst.Length || index < 0) return null;
+
+            return lst[index];
+        }
+
+        public static string StringAt(this object[] lst, int index) {
+            return Convert.ToString(lst.SafeAt(index));
+        }
+
+        public static int IntAt(this object[] lst, int index) {
+            return Convert.ToInt32(lst.SafeAt(index));
+        }
+
+        public static double DoubleAt(this object[] lst, int index) {
+            return Convert.ToDouble(lst.SafeAt(index));
+        }
+
+        public static bool BoolAt(this object[] lst, int index) {
+            return Convert.ToBoolean(lst.SafeAt(index));
+        }
     }
 }

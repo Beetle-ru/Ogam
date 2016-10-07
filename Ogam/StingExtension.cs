@@ -3,22 +3,21 @@ using System.Collections.Generic;
 
 namespace Ogam {
     public static class StingExtension {
-        //private static IEvaluator Evaluator = new OgamEvaluator();
-        public static readonly IEvaluator Evaluator = new OgamEvaluatorTailQ();
+        public static IEvaluator Evaluator = new Evaluator();
+        //public static IEvaluator Evaluator = new OgamEvaluatorTailQ();
+        //public static readonly IEvaluator Evaluator = new OgamCompiler();
 
         public static Symbol ToSymbol(this string s) {
             return new Symbol(s);
         }
 
-        public static object OgamEval(this string expr, params object[] args) {
-            return expr.OgamEval(Evaluator, args);
-        }
+        public static object OgamEval(this string expr, params object[] args) => expr.OgamEval(Evaluator, args);
 
-        public static void OgamExtend(this string name, Call call) {
+        public static void OgamExtend(this string name, FunctionCall call) {
             name.OgamExtend(Evaluator, call);
         }
 
-        public static void OgamExtend(this string name, IEvaluator evaluator, Call call) {
+        public static void OgamExtend(this string name, IEvaluator evaluator, FunctionCall call) {
             name = name.Trim();
 
             if (name.StartsWith("(") || name.EndsWith(")")) {

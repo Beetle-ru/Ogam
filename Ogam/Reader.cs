@@ -3,142 +3,176 @@ using System.Linq;
 
 namespace Ogam {
     public class Reader {
-        static public object Parse(string str) {
-            var p = 0;
+        static public Pair Parse(string str) {
+            var sr = new StringReader(str);
             var programm = new Pair();
 
-            while (p < str.Length) {
-                Skip(str, ref p);
-                programm.Add(ReadPrimitive(str, ref p));
-                Skip(str, ref p);
+            while (!sr.IsEndOfString()) {
+                Skip(sr);
+                programm.Add(ReadPrimitive(sr));
+                Skip(sr);
             }
 
             return programm;
         }
 
+        class StringReader {
+            private string str;
+            private uint p;
+            public StringReader(string stri) {
+                str = stri;
+                p = 0;
+            }
 
-        private static object ReadPrimitive(string str, ref int p) {
-            var c = p < str.Length ? str[p] : '\0';
+            public char GetC(uint preview = 0) {
+                return !IsEndOfString(preview) ? str[(int)(p + preview)] : '\0';
+            }
 
-            if (IsDigit(c) || (IsNumber(c) && IsDigit(str[p + 1]))) {
-                return ReadNumber(str, ref p);
+            public uint GetPosition() {
+                return p;
+            }
+
+            public char GetNext(uint indx = 1) {
+                p += indx;
+                return !IsEndOfString() ? str[(int)p] : '\0';
+            }
+
+            public char GetPrev(uint indx = 1) {
+                if (p - indx >= 0) {
+                    p -= indx;
+                    return str[(int) p];
+                }
+                return '\0';
+            }
+
+            public bool IsEndOfString(uint preview = 0) {
+                return p + preview >= str.Length;
+            }
+        }
+
+        private static object ReadPrimitive(StringReader sr) {
+            var c = sr.GetC();
+
+            if (IsDigit(c) || (IsNumber(c) && IsDigit(sr.GetC(1)))) {
+                return ReadNumber(sr);
             }
 
             if (IsString(c)) {
-                return ReadString(str, ref p);
+                return ReadString(sr);
             }
 
             if (IsPair(c)) {
-                return ReadPair(str, ref p);
+                return ReadPair(sr);
             }
 
             if (IsQuote(c)) {
-                return ReadQuote(str, ref p);
+                return ReadQuote(sr);
             }
 
             if (IsSharp(c)) {
-                return ReadSahrp(str, ref p);
+                return ReadSahrp(sr);
             }
 
-            if (IsBadSymbol(str, p)) {
-                throw new Exception(string.Format("READER:ReadPrimitive{0}Bad symbol '{1}' in {2} position{0}", Environment.NewLine, c, p));
+            if (IsBadSymbol(sr)) {
+                throw new Exception(string.Format("READER:ReadPrimitive{0}Bad symbol '{1}' in {2} position{0}", Environment.NewLine, c, sr.GetPosition()));
             }
 
-            return ReadSymbol(str, ref p);
+            return ReadSymbol(sr);
         }
 
-        private static bool IsBadSymbol(string str, int p) {
-            var c = p < str.Length ? str[p] : '\0';
+        private static bool IsBadSymbol(StringReader sr) {
+            var c = sr.GetC();
 
             return (c == ')') || (c == '"');
         }
 
 
-        private static Pair ReadQuote(string str, ref int p) {
+        private static Pair ReadQuote(StringReader sr) {
             var quote = new Pair();
 
-            p++;
+            sr.GetNext();
 
             quote.Car = "quote".ToSymbol();
             
-            Skip(str, ref p);
-            quote.Cdr = new Pair() {Car = ReadPrimitive(str, ref p)};
+            Skip(sr);
+            quote.Cdr = new Pair() {Car = ReadPrimitive(sr)};
 
             return quote;
         }
 
-        private static Pair ReadVector(string str, ref int p) {
+        private static Pair ReadVector(StringReader sr) {
             var operation = new Pair();
 
-            p++;
+            sr.GetNext();
 
             operation.Car = "vector".ToSymbol();
 
-            Skip(str, ref p);
-            operation.Cdr = ReadPrimitive(str, ref p);
+            Skip(sr);
+            operation.Cdr = ReadPrimitive(sr);
 
             return operation;
         }
 
-        private static object ReadSahrp(string str, ref int p) {
+        private static object ReadSahrp(StringReader sr) {
 
-            p++;
+            sr.GetNext();
 
-            if (p >= str.Length) {
-                throw new Exception(string.Format("READER:ReadSahrp{0}Expected next symbol in {1} position", Environment.NewLine, p));
+            if (sr.IsEndOfString()) {
+                throw new Exception(string.Format("READER:ReadSahrp{0}Expected next symbol in {1} position", Environment.NewLine, sr.GetPosition()));
             }
 
-            var c = str[p];
+            var c = sr.GetC();
 
             switch (c) {
                 case  '\\':
-                    return ReadCharter(str, ref p);
+                    return ReadCharter(sr);
 
                 case '(':
-                    p--;
-                    return ReadVector(str, ref p);
+                    sr.GetPrev();
+                    return ReadVector(sr);
                 case 'T':
                 case 't':
-                    p++;
+                    sr.GetNext();
                     return true;
 
                 case 'F':
                 case 'f':
-                    p++;
+                    sr.GetNext();
                     return false;
                    
                 default :
-                    p--;
-                    return ReadSymbol(str, ref p);
+                    sr.GetPrev();
+                    return ReadSymbol(sr);
             }
 
             return null;
         }
 
-        private static char ReadCharter(string str, ref int p) {
-            p++;
+        private static char ReadCharter(StringReader sr) {
+            sr.GetNext();
 
-            if (p >= str.Length) {
-                throw new Exception(string.Format("READER:ReadCharter{0}Expected next symbol in {1} position", Environment.NewLine, p));
+            if (sr.IsEndOfString()) {
+                throw new Exception(string.Format("READER:ReadCharter{0}Expected next symbol in {1} position", Environment.NewLine, sr.GetPosition()));
             }
-
-            return str[p++];
+            var c = sr.GetC();
+            sr.GetNext();
+            return c;
         }
 
-        private static object ReadNumber(string str, ref int p) {
+        private static object ReadNumber(StringReader sr) {
             var buf = "";
-            var c = str[p];
-            while ((p < str.Length) && ((IsNumber(c)) || (c == '.'))) {
+            var c = sr.GetC();
+            while ((!sr.IsEndOfString()) && ((IsNumber(c)) || (c == '.'))) {
                 buf = string.Concat(buf, c);
-                p++;
-                c = p < str.Length ? str[p] : '\0';
+                sr.GetNext();
+                c = sr.GetC();
             }
 
             try {
                 return ParseNumber(buf);
             }
             catch (Exception) {
-                throw new Exception(string.Format("READER:ReadNumber{0}Expected number in {1} position{0}Number destroyed:{0}\"{2}\"", Environment.NewLine, p, buf));
+                throw new Exception(string.Format("READER:ReadNumber{0}Expected number in {1} position{0}Number destroyed:{0}\"{2}\"", Environment.NewLine, sr.GetPosition(), buf));
             }
             
             return null;
@@ -161,26 +195,26 @@ namespace Ogam {
             return intval;
         }
 
-        private static object ReadSymbol(string str, ref int p) {
+        private static object ReadSymbol(StringReader sr) {
             var buf = "";
-            var c = p < str.Length ? str[p] : '\0';
-            while ((p < str.Length) && ((c != '"') && (c != '(') && (c != ')') && (c != '\0') && (!IsWhite(c)))) {
+            var c = sr.GetC();
+            while ((!sr.IsEndOfString()) && ((c != '"') && (c != '(') && (c != ')') && (c != '\0') && (!IsWhite(c)))) {
                 buf = string.Concat(buf, c);
-                p++;
-                c = p < str.Length ? str[p] : '\0';
+                sr.GetNext();
+                c = sr.GetC();
             }
 
             return  buf.ToSymbol();
         }
 
-        private static object ReadString(string str, ref int p) {
-            if (p + 1 >= str.Length) return null;
+        private static object ReadString(StringReader sr) {
+            if (sr.IsEndOfString()) return null;
 
             var buf = "";
-            var c = str[++p];
-            while (p < str.Length) {
+            var c = sr.GetNext();
+            while (!sr.IsEndOfString()) {
                 if (c == '"') { //ok
-                    p++;
+                    sr.GetNext();
                     return buf;
                 }
 
@@ -188,46 +222,46 @@ namespace Ogam {
 
                 if (c == '\\') {
                     while (c == '\\') {
-                        p++;
-                        c = p < str.Length ? str[p] : '\0';
+                        sr.GetNext();
+                        c = sr.GetC();
 
                         buf = string.Concat(buf, c);
 
-                        p++;
-                        c = p < str.Length ? str[p] : '\0';
+                        sr.GetNext();
+                        c = sr.GetC();
                     }
                 }
                 else {
                     buf = string.Concat(buf, c);
-                    p++;
-                    c = p < str.Length ? str[p] : '\0';
+                    sr.GetNext();
+                    c = sr.GetC();
                 }
             }
 
-            p++;
+            sr.GetNext();
 
-            throw new Exception(string.Format("READER:ReadString{0}Expected symbol '\"' in {1} position{0}String destroyed:{0}\"{2}\"", Environment.NewLine, p, buf));
+            throw new Exception(string.Format("READER:ReadString{0}Expected symbol '\"' in {1} position{0}String destroyed:{0}\"{2}\"", Environment.NewLine, sr.GetPosition(), buf));
         }
 
-        private static Pair ReadPair(string str, ref int p) {
+        private static Pair ReadPair(StringReader sr) {
             var root = new Pair();
             var last = root;
 
-            p++;
+            sr.GetNext();
 
-            while ((p < str.Length)) {
-                Skip(str, ref p);
+            while ((!sr.IsEndOfString())) {
+                Skip(sr);
 
-                if (str[p] == ')') { //ok
-                    p++;
+                if (sr.GetC() == ')') { //ok
+                    sr.GetNext();
 
                     return root;
                 }
 
-                if (str[p] == '.') {
-                    p++;
-                    Skip(str, ref p);
-                    last.Cdr = ReadPrimitive(str, ref p);
+                if (sr.GetC() == '.') {
+                    sr.GetNext();
+                    Skip(sr);
+                    last.Cdr = ReadPrimitive(sr);
                     continue;
                 }
 
@@ -237,33 +271,33 @@ namespace Ogam {
                     last = newC;
                 }
 
-                last.Car = ReadPrimitive(str, ref p);
+                last.Car = ReadPrimitive(sr);
             }
 
-            throw new Exception(string.Format("READER:ReadPair{0}Expected symbol ')' in {1} position{0}Expression destroyed:{0}{2}", Environment.NewLine, p, root.ToString()));
+            throw new Exception(string.Format("READER:ReadPair{0}Expected symbol ')' in {1} position{0}Expression destroyed:{0}{2}", Environment.NewLine, sr.GetPosition(), root.ToString()));
 
             return root;
         }
 
-        private static void SkipWhite(string str, ref int p) {
-            while ((p < str.Length) && (IsWhite(str[p]))) {
-                p++;
+        private static void SkipWhite(StringReader sr) {
+            while ((!sr.IsEndOfString()) && (IsWhite(sr.GetC()))) {
+                sr.GetNext();
             }
         }
 
-        private static void Skip(string str, ref int p) {
-            SkipWhite(str, ref p);
+        private static void Skip(StringReader sr) {
+            SkipWhite(sr);
 
-            while ((p < str.Length) && IsComment(str[p])) {
-                SkipComment(str, ref p);
-                SkipWhite(str, ref p);
+            while ((!sr.IsEndOfString()) && IsComment(sr.GetC())) {
+                SkipComment(sr);
+                SkipWhite(sr);
             }
 
         }
 
-        private static void SkipComment(string str, ref int p) {
-            while ((p < str.Length) && ((str[p] != '\n') && (str[p] != '\r'))) {
-                p++;
+        private static void SkipComment(StringReader sr) {
+            while ((!sr.IsEndOfString()) && ((sr.GetC() != '\n') && (sr.GetC() != '\r'))) {
+                sr.GetNext();
             }
         }
 

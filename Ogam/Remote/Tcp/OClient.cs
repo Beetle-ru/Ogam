@@ -31,7 +31,7 @@ namespace Ogam.Remote.Tcp {
                 Name = Guid.NewGuid().ToString("N").Substring(0, 5);
             }
 
-            _receivEvaluator = new OgamEvaluatorTailQ();
+            _receivEvaluator = new Evaluator();
             _receivEvaluator.Extend("throw-exception", ThrowException);
 
             var connectionThread = new Thread(ConnectorHandler);
@@ -39,8 +39,8 @@ namespace Ogam.Remote.Tcp {
             connectionThread.Start();
         }
 
-        private static object ThrowException(Pair arg) {
-            return new Exception(arg.AsString());
+        private static object ThrowException(object[] arg) {
+            return new Exception(arg.StringAt(0));
         }
 
         public object MakeCall(string operation, params object[] args) {
