@@ -1,264 +1,390 @@
 ﻿using System;
+using System.CodeDom.Compiler;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
-namespace Ogam {
-    public class OgamSerializer {
-        public static string Serialize(object obj) {
-            if (obj == null) return "#nil";
+namespace Ogam
+{
+    public class OgamSerializer
+    {
+        private static readonly Dictionary<Type, Func<object, Pair>> Serializers = new Dictionary<Type, Func<object, Pair>>();
 
-            if (IsBaseType(obj)) {
-                return Pair.O2String(obj);
-            }
+        private static readonly Dictionary<Type, Func<Pair, object>> Deserializers = new Dictionary<Type, Func<Pair, object>>();
 
-            var pair = SerializeObject(obj);
-            return "'" + pair.ToString();
+        private static readonly List<string> RequiredNamespaces = new List<string>();
+
+        static OgamSerializer()
+        {
+            RequiredNamespaces.Add("System");
+            RequiredNamespaces.Add("System.Collections.Generic");
+            RequiredNamespaces.Add("System.Collections");
+            RequiredNamespaces.Add("System.Linq");
+            RequiredNamespaces.Add("Ogam");
         }
 
-        public static object Deserialize(Pair data, Type type) {
-            return DeserealizeObject(data, type);
-        }
-
-        private static object DeserealizeObject(Pair data, Type type) {
-            if (data == null) return null;
-
-            if (type.GetInterfaces().Any(ie => ie == typeof (IDictionary))) {
-                return DeserializeDictionary(data, type.GetGenericArguments());
-            }
-
-            if (type.GetInterfaces().Any(ie => ie == typeof(ICollection))) {
-                return DeserializeCollection(data, type.GetGenericArguments());
-            }
-
-            var o = Activator.CreateInstance(type);
-
-
-            while (true) {
-                var pair = data.AsObject() as Pair;
-
-                if (pair == null) {
-                    if (data.MoveNext() == null)
-                        break;
-
-                    continue;
-                }
-
-                var name = pair.AsString();
-                var value = pair.Cdr;
-
-                //var field = type.GetField(name);
-                var members = type.GetMember(name);
-
-                if (members.Any()) {
-
-                    var memberInfo = members[0];
-
-                    if (memberInfo is FieldInfo) {
-                        var field = (FieldInfo) memberInfo;
-
-                        if (field.IsLiteral) { // cannot be change
-                            if (data.MoveNext() == null) break;
-                            continue;
-                        }
-
-                        if (field.FieldType == typeof (DateTime)) {
-                            value = Convert.ToDateTime(value);
-                        }
-                        else if (field.FieldType.GetInterfaces().Any(ie => ie == typeof (ICollection))) {
-                            value = DeserializeCollection(((Pair) value).Car as Pair,
-                                field.FieldType.GetGenericArguments());
-                        }
-                        else if (!IsBaseType(field.FieldType)) {
-                            value = DeserealizeObject(value as Pair, field.FieldType);
-                        }
-
-                        field.SetValue(o, value);
-                    } else if (memberInfo is PropertyInfo) {
-                        var property = (PropertyInfo)memberInfo;
-
-                        if (property.PropertyType == typeof(DateTime)) {
-                            value = Convert.ToDateTime(value);
-                        } else if (property.PropertyType.GetInterfaces().Any(ie => ie == typeof(ICollection))) {
-                            value = DeserializeCollection(((Pair)value).Car as Pair,
-                                property.PropertyType.GetGenericArguments());
-                        } else if (!IsBaseType(property.PropertyType)) {
-                            value = DeserealizeObject(value as Pair, property.PropertyType);
-                        }
-
-                        property.SetValue(o, value, null);
-                    }
-
-                }
-                if (data.MoveNext() == null) break;
-            }
-
-            return o;
-        }
-
-        private static ICollection DeserializeCollection(Pair lst, Type[] types) {
-            var d1 = typeof(List<>);
-            var makeme = d1.MakeGenericType(types);
-            var list = (IList)Activator.CreateInstance(makeme);
-
-            while (true) {
-
-                var o = lst.AsObject();
-
-                if (o is Pair) {
-                    var pair = o as Pair;
-                    o = DeserealizeObject(pair, types[0]);
-                }
-
-                if (o != null) {
-                    list.Add(o);
-                }
-
-                if (lst.MoveNext() == null)
-                    break;
-            }
-
-            return list;
-        }
-
-        private static ICollection DeserializeDictionary(Pair lst, Type[] types) {
-            var d1 = typeof(Dictionary<,>);
-            var makeme = d1.MakeGenericType(types);
-            var dic = (IDictionary)Activator.CreateInstance(makeme);
-
-            while (true) {
-
-                var p = lst.AsObject() as Pair;
-                var k = p.Car;
-                var v = p.Cdr;
-                
-                if (k is Pair) {
-                    var pair = k as Pair;
-                    k = DeserealizeObject(pair, types[0]);
-                }
-
-                if (v is Pair) {
-                    var pair = v as Pair;
-                    v = DeserealizeObject(pair, types[1]);
-                }
-
-                if (k != null) {
-                    //dic.Add(k,v);
-                    dic[k] = v;
-                }
-
-                if (lst.MoveNext() == null)
-                    break;
-            }
-
-            return dic;
-        }
-
-
-        private static Pair SerializeObject(object obj) {
-            if (obj == null) {
+        public static Pair Serialize(object data, Type t)
+        {
+            if (data == null)
                 return new Pair();
+
+            if (IsBaseType(t))
+                throw new ArgumentException(
+                    "This method should not be used with base types (Primitive, Decimal, String, DateTime)");
+
+            if (!Serializers.ContainsKey(t))
+            {
+                var res = GetCompiledResult(t, true);
+                Serializers.Add(t, res.GetResult() as Func<object, Pair>);
             }
-          
-            if (obj is IDictionary) {
-                return SerializeDictionary(obj as IDictionary);
+            return Serializers[t](data);
+        }
+
+        public static string Serialize(object data)
+        {
+            if (data == null)
+                return "#nil";
+
+            var t = data.GetType();
+
+            if (IsBaseType(t))
+            {
+                return Pair.O2String(data);
             }
 
-            if (obj is ICollection) {
-                return SerializeCollection(obj as ICollection);
+            return "'" + Serialize(data, t);
+        }
+
+        public static object Deserialize(Pair data, Type t)
+        {
+            if (data == null)
+                return null;
+
+            if (IsBaseType(t))
+                throw new ArgumentException(
+                    "This method should not be used with base types (Primitive, Decimal, String, DateTime)");
+
+            if (!Deserializers.ContainsKey(t))
+            {
+                var res = GetCompiledResult(t, false);
+                Deserializers.Add(t, res.GetResult() as Func<Pair, object>);
+            }
+            return Deserializers[t](data);
+        }
+
+        private static IResult GetCompiledResult(Type target, bool forward)
+        {
+            var provider = CodeDomProvider.CreateProvider("CSharp");
+            var DOMref = AppDomain.CurrentDomain.GetAssemblies().Where(obj => !obj.IsDynamic).Select(obj => obj.Location).ToList();
+
+            var currentAssembly = Assembly.GetExecutingAssembly();
+            DOMref.Add(currentAssembly.Location);
+
+            var cp = new CompilerParameters(DOMref.ToArray());
+            cp.GenerateInMemory = true;
+
+            var className = "SerializerFactory";
+            var outputType = (forward ? "Func<object, Pair>" : "Func<Pair, object>");
+            var arg = "data";
+
+            var srcBuilder = new StringBuilder();
+
+            // REQUIRED ANYWAY
+            foreach (var nmsp in RequiredNamespaces)
+            {
+                srcBuilder.AppendLine($"using {nmsp};");
             }
 
-            var type = obj.GetType();
-            //var fields = type.GetFields();
-            var members = type.GetMembers();
-            
-            var root = new Pair();
-            var current = root;
+            // ADDITIONAL FOR CONCRETE TYPE
+            foreach (var nmsp in GetTypeNamespaces(target).Where(t => !RequiredNamespaces.Contains(t)))
+            {
+                srcBuilder.AppendLine($"using {nmsp};");
+            }
 
-            foreach (var memberInfo in members) {
-                var name = memberInfo.Name;
-                object value = null;// = fieldInfo.GetValue(obj);
+            srcBuilder.AppendLine("namespace Ogam {");
+            srcBuilder.AppendLine($"public partial class {className} : IResult {{");
 
-                if (memberInfo is FieldInfo) {
-                    value = ((FieldInfo) memberInfo).GetValue(obj);
-                } else if (memberInfo is PropertyInfo) {
-                    value = ((PropertyInfo) memberInfo).GetValue(obj, null);
-                } else continue;
+            #region IResult.GetResult
 
-                if (!IsBaseType(value)) {
-                    if (value is ICollection) {
-                        value = new Pair(SerializeCollection(value as ICollection));
-                    }
-                    else {
-                        value = SerializeObject(value);
-                    }
+            srcBuilder.AppendLine("public Delegate GetResult() {");
+            srcBuilder.AppendLine($"return new {outputType}(({arg})=>{{");
+            srcBuilder.AppendLine(GenerateTypeDef(target, forward, arg));
+            srcBuilder.AppendLine("});");
+            srcBuilder.AppendLine("}");
 
-                } else if (value is string) {
-                    //value = Pair.O2String(value);
-                    value = value;
+            #endregion
+
+            srcBuilder.AppendLine("} // cls");
+            srcBuilder.AppendLine("} // ns");
+
+            // COMPILATION
+            var src = srcBuilder.ToString();
+            var cr = provider.CompileAssemblyFromSource(cp, src);
+
+            if (cr.Errors.Count > 0)
+            {
+                var e = new Exception("Error in OgamSerializer dynamic compile module. See details in data property...");
+                foreach (CompilerError ce in cr.Errors)
+                {
+                    e.Data[ce.ErrorNumber] = $"{target.Assembly}|{target.Name}  {ce.ToString()}";
                 }
-
-
-                current = current.Add(new Pair(name.ToSymbol(), value));
-                
+                throw new Exception();
             }
-
-            return root;
-        }
-
-        private static Pair SerializeDictionary(IDictionary dictionary) {
-            var root = new Pair();
-            var current = root;
-
-            var keys = dictionary.Keys;
-
-            foreach (var key in keys) {
-                var item = new Pair(O2Primitive(key), O2Primitive(dictionary[key]));
-                current = current.Add(item);
+            else
+            {
+                var type = cr.CompiledAssembly.GetType("Ogam." + className);
+                var obj = (IResult)Activator.CreateInstance(type);
+                return obj;
             }
-
-            return root;
+            return null;
         }
 
-        private static Pair SerializeCollection(ICollection collection) {
-            var root = new Pair();
-            var current = root;
-
-            foreach (var item in collection) {
-                current = current.Add(O2Primitive(item));
+        private static ICollection<string> GetTypeNamespaces(Type t)
+        {
+            var res = new List<string>();
+            res.Add(t.Namespace);
+            if (t.IsGenericType)
+            {
+                Array.ForEach<Type>(t.GetGenericArguments(), tt => res.AddRange(GetTypeNamespaces(tt)));
             }
-
-            return root;
+            return res.Distinct().ToList();
         }
 
-        private static object O2Primitive(object obj) {
-            return IsBaseType(obj) ? obj : SerializeObject(obj);
+        private static string GetGenericTypeArguments(Type t, bool withTypeName = true)
+        {
+            var res = string.Empty;
+            if (t.IsGenericType)
+            {
+                Array.ForEach<Type>(t.GetGenericArguments(), tt => res += ", " + GetGenericTypeArguments(tt));
+                res = res.Substring(2);
+                res = "<" + res;
+                res += ">";
+            }
+            res = withTypeName ? t.Name + res : res;
+            return Regex.Replace(res, "`[0-9]", string.Empty);
         }
 
-        private static bool IsBaseType(object o) {
-            return o == null || IsBaseType(o.GetType());
+        private static bool IsBaseType(Type t)
+        {
+            return t.IsPrimitive || t == typeof(string) || t == typeof(DateTime) || t == typeof(Decimal);
         }
 
-        private static bool IsBaseType(Type t) {
-            return (t == typeof(byte))
-                   || (t == typeof(sbyte))
-                   || (t == typeof(bool))
-                   || (t == typeof(char))
-                   || (t == typeof(decimal))
-                   || (t == typeof(double))
-                   || (t == typeof(float))
-                   || (t == typeof(int))
-                   || (t == typeof(uint))
-                   || (t == typeof(long))
-                   || (t == typeof(ulong))
-                   || (t == typeof(short))
-                   || (t == typeof(ushort))
-                   || (t == typeof(DateTime))
-                   || (t == typeof(string));
+        private static string GenerateTypeDef(Type t, bool forward, string arg)
+        {
+            if (forward)
+            {
+                #region SERIALIZER DEFINITION
 
+                StringBuilder res = new StringBuilder();
+                res.AppendLine("var result = new Pair();");
+                res.AppendLine("var current = result;");
+
+                if (t.GetInterfaces().Any(ie => ie == typeof(ICollection)))
+                {
+                    var internalType = t.GetInterface("ICollection`1").GetGenericArguments()[0];
+                    var internalTypeFullName = GetGenericTypeArguments(internalType);
+
+                    var defaultContition = internalType.IsValueType ? $"el.Equals(default({internalTypeFullName}))" : "el==null";
+
+                    res.AppendLine($"foreach (var el in (ICollection){arg})");
+                    res.AppendLine("{");
+
+                    res.AppendLine(!IsBaseType(internalType)
+                        ? $"var elPair = ({defaultContition}) ? null : OgamSerializer.Serialize(el, typeof({internalTypeFullName}));"
+                        : $"var elPair = el;");
+                    res.AppendLine("current = current.Add(elPair);");
+
+                    res.AppendLine("}");
+                }
+                else
+                {
+                    res.AppendLine($"var argCasted = ({GetGenericTypeArguments(t)}){arg};");
+
+                    foreach (var mb in t.GetMembers())
+                    {
+                        if (mb is FieldInfo)
+                        {
+                            var f = (FieldInfo)mb;
+
+                            if (f.IsLiteral)
+                                continue;
+
+                            var internalTypeFullName = GetGenericTypeArguments(f.FieldType);
+                            var defaultContition = f.FieldType.IsValueType ? $"argCasted.{f.Name}.Equals(default({internalTypeFullName}))" : $"argCasted.{f.Name}==null";
+
+                            res.AppendLine("{");
+
+                            res.AppendLine(IsBaseType(f.FieldType)
+                                ? $"var val = argCasted.{f.Name};"
+                                : $"var val = ({defaultContition}) ? null : OgamSerializer.Serialize(argCasted.{f.Name}, typeof({internalTypeFullName}));");
+
+                            res.AppendLine(f.FieldType.GetInterfaces().Any(ie => ie == typeof(ICollection))
+                                ? $"current = current.Add(new Pair(\"{f.Name}\".ToSymbol(), val==null ? null : new Pair(val)));"
+                                : $"current = current.Add(new Pair(\"{f.Name}\".ToSymbol(), val));");
+
+                            res.AppendLine("}");
+                        }
+                        else if (mb is PropertyInfo)
+                        {
+                            var p = (PropertyInfo)mb;
+
+                            var internalTypeFullName = GetGenericTypeArguments(p.PropertyType);
+                            var defaultContition = p.PropertyType.IsValueType ? $"argCasted.{p.Name}.Equals(default({internalTypeFullName}))" : $"argCasted.{p.Name}==null";
+
+                            res.AppendLine("{");
+
+                            res.AppendLine(IsBaseType(p.PropertyType)
+                                ? $"var val = argCasted.{p.Name};"
+                                : $"var val = ({defaultContition}) ? null : OgamSerializer.Serialize(argCasted.{p.Name}, typeof({internalTypeFullName}));");
+
+                            res.AppendLine(p.PropertyType.GetInterfaces().Any(ie => ie == typeof(ICollection))
+                                ? $"current = current.Add(new Pair(\"{p.Name}\".ToSymbol(), val==null ? null : new Pair(val)));"
+                                : $"current = current.Add(new Pair(\"{p.Name}\".ToSymbol(), val));");
+
+                            res.AppendLine("}");
+                        }
+                    }
+                }
+                res.AppendLine("return result;");
+                return res.ToString();
+
+                #endregion
+            }
+            else
+            {
+                #region DESERIALIZER DEFINITION
+
+                StringBuilder res = new StringBuilder();
+                res.AppendLine($"var result = new {GetGenericTypeArguments(t)}();");
+
+                if (t.GetInterfaces().Any(ie => ie == typeof(ICollection)))
+                {
+                    var internalType = t.GetInterface("ICollection`1").GetGenericArguments()[0];
+                    var internalTypeFullName = GetGenericTypeArguments(internalType);
+
+                    var addStatement1 = internalType.IsValueType ? "" : "if (elem != null) ";
+                    var addStatement2 = t.GetInterfaces().Any(ie => ie == typeof(IDictionary))
+                        ? "elem.Key, elem.Value"
+                        : "elem";
+
+                    res.AppendLine("while (true)");
+                    res.AppendLine("{");
+
+                    res.AppendLine($"var p = {arg}.AsObject();");
+                    res.AppendLine($"if (p == null) break;");
+
+                    if (IsBaseType(internalType))
+                        res.AppendLine($"var elem = Convert.To{internalType.Name}(p);");
+                    else
+                    {
+                        res.AppendLine($"var el = {arg}.AsObject() as Pair;");
+                        res.AppendLine(
+                            $"var elem = ({internalTypeFullName})OgamSerializer.Deserialize(el, typeof({internalTypeFullName}));");
+                    }
+                    res.AppendLine($"{addStatement1}result.Add({addStatement2});");
+                    res.AppendLine($"if ({arg}.MoveNext() == null) break;");
+
+                    res.AppendLine("}");
+                }
+                else
+                {
+                    if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(KeyValuePair<,>))
+                    {
+                        var types = t.GetGenericArguments();
+                        res.AppendLine("var Key=result.Key;");
+                        res.AppendLine("var Value=result.Value;");
+                        {
+                            var type = types[0];
+                            var typeFullName = GetGenericTypeArguments(type);
+
+                            res.AppendLine("{");
+                            res.AppendLine($"var pair = {arg}.AsObject() as Pair;");
+                            res.AppendLine("var value = pair.Cdr;");
+
+                            res.AppendLine(IsBaseType(type)
+                                ? $"Key =(value==null) ? default({type.Name}) : Convert.To{type.Name}(value);"
+                                : $"Key = ((Pair)value==null) ? default({typeFullName}) : ({typeFullName})OgamSerializer.Deserialize((Pair)value, typeof({typeFullName}));");
+                            res.AppendLine($"{arg}.MoveNext();");
+                            res.AppendLine("}");
+                        }
+                        {
+                            var type = types[1];
+                            var typeFullName = GetGenericTypeArguments(type);
+
+                            res.AppendLine("{");
+                            res.AppendLine($"var pair = {arg}.AsObject() as Pair;");
+                            res.AppendLine("var value = pair.Cdr;");
+
+                            res.AppendLine(IsBaseType(type)
+                                ? $"Value =(value==null) ? default({type.Name}) : Convert.To{type.Name}(value);"
+                                : $"Value = ((Pair)value==null) ? default({typeFullName}) : ({typeFullName})OgamSerializer.Deserialize((Pair)value, typeof({typeFullName}));");
+                            res.AppendLine($"{arg}.MoveNext();");
+                            res.AppendLine("}");
+                        }
+                        res.AppendLine($"result = new {GetGenericTypeArguments(t)}(Key, Value);");
+                    }
+                    else
+                        foreach (var mb in t.GetMembers())
+                        {
+                            if (mb is FieldInfo)
+                            {
+                                var f = (FieldInfo)mb;
+
+                                if (f.IsLiteral)
+                                    continue;
+
+                                var type = f.FieldType;
+                                var typeFullName = GetGenericTypeArguments(type);
+
+                                res.AppendLine("{");
+
+                                res.AppendLine($"var pair = {arg}.AsObject() as Pair;");
+                                res.AppendLine(type.GetInterfaces().Any(ie => ie == typeof(ICollection))
+                                    ? "var prevalue = (Pair)pair.Cdr; var value = prevalue==null?null:prevalue.Car as Pair;"
+                                    : "var value = pair.Cdr;");
+
+                                res.AppendLine(IsBaseType(type)
+                                    ? $"result.{f.Name} = (value==null) ? default({type.Name}) : Convert.To{type.Name}(value);"
+                                    : $"result.{f.Name} = ((Pair)value==null) ? default({typeFullName}) : ({typeFullName})OgamSerializer.Deserialize((Pair)value, typeof({typeFullName}));");
+                                res.AppendLine($"{arg}.MoveNext();");
+
+                                res.AppendLine("}");
+                            }
+                            else if (mb is PropertyInfo)
+                            {
+                                var p = (PropertyInfo)mb;
+
+                                var type = p.PropertyType;
+                                var typeFullName = GetGenericTypeArguments(type);
+
+                                res.AppendLine("{");
+
+                                res.AppendLine($"var pair = {arg}.AsObject() as Pair;");
+                                res.AppendLine(type.GetInterfaces().Any(ie => ie == typeof(ICollection))
+                                    ? "var prevalue = (Pair)pair.Cdr; var value = prevalue==null?null:prevalue.Car as Pair;"
+                                    : "var value = pair.Cdr;");
+
+                                res.AppendLine(IsBaseType(type)
+                                    ? $"result.{p.Name} = (value==null) ? default({type.Name}) : Convert.To{type.Name}(value);"
+                                    : $"result.{p.Name} = ((Pair)value==null) ? default({typeFullName}) : ({typeFullName})OgamSerializer.Deserialize((Pair)value, typeof({typeFullName}));");
+                                res.AppendLine($"{arg}.MoveNext();");
+
+                                res.AppendLine("}");
+                            }
+                        }
+                }
+                res.AppendLine("return result;");
+                return Regex.Replace(res.ToString(), "`[0-9]", string.Empty);
+
+                #endregion
+            }
         }
+    }
+    public interface IResult
+    {
+        Delegate GetResult();
     }
 }
