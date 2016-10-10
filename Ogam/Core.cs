@@ -202,13 +202,20 @@ namespace Ogam {
         }
 
         static object BeginInvoke(object[] args) {
-            var funct = args.ObjectAt(0) as FunctionCall;
+            var argi = 0;
+            var funct = args.ObjectAt(argi++) as FunctionCall;
 
             if (funct == null) {
                 return false;
             }
 
-            funct.BeginInvoke((object[])args.ObjectAt(1), null, null);
+            var procArgs = new List<object>();
+
+            for (var i = argi; i < args.Length; i++) {
+                procArgs.Add(args[i]);
+            }
+
+            funct.BeginInvoke(procArgs.ToArray(), null, null);
             return true;
         }
     }
