@@ -131,7 +131,7 @@ namespace Ogam
                 {
                     e.Data[ce.ErrorNumber] = $"{target.Assembly}|{target.Name}  {ce.ToString()}";
                 }
-                throw new Exception();
+                throw e;
             }
             else
             {
