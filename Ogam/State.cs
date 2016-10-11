@@ -6,14 +6,14 @@ using System.Threading.Tasks;
 
 namespace Ogam {
     public class ArgV {
-        //public Stack<object> Stack;
-        //public object Exp;
-        //public object Val;
         private Stack<object> _argV;
-        //public EnviromentFrame Env;
 
         public ArgV(Stack<object> argV) {
-            _argV = new Stack<object>(argV);
+            _argV = new Stack<object>();
+
+            for (int i = argV.Count - 1; i >= 0; i--) {
+                _argV.Push(argV.ElementAt(i));
+            }
         }
 
         public Stack<object> GetArgV() {

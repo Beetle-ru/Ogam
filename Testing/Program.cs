@@ -15,6 +15,8 @@ namespace Testing {
 
             //"(define (l) #t (l))(l)".OgamEval();
 
+            "(+ (+ 11 13) 1 2 3)".OgamEval();
+
             Base();
             IntrnalState();
             ThreadSafe();
