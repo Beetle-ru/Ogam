@@ -18,6 +18,11 @@ namespace Ogam {
             evaluator.Extend(">", More);
             evaluator.Extend("<", Less);
 
+            evaluator.Extend("and", And);
+            evaluator.Extend("or", Or);
+            evaluator.Extend("not", Not);
+
+
             evaluator.Extend("cons", Cons);
             evaluator.Extend("car", Car);
             evaluator.Extend("cdr", Cdr);
@@ -103,6 +108,30 @@ namespace Ogam {
             }
 
             return true;
+        }
+
+        private static object And(object[] args) {
+            var result = args.BoolAt(0);
+
+            for (var i = 1; i < args.Length; i++) {
+                result = result && args.BoolAt(i);
+            }
+
+            return result;
+        }
+
+        private static object Or(object[] args) {
+            var result = args.BoolAt(0);
+
+            for (var i = 1; i < args.Length; i++) {
+                result = result || args.BoolAt(i);
+            }
+
+            return result;
+        }
+
+        private static object Not(object[] args) {
+            return !args.BoolAt(0);
         }
 
         private static object Cons(object[] args) {
