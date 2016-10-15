@@ -16,40 +16,6 @@ namespace Ogam {
             return programm;
         }
 
-        class StringReader {
-            private string str;
-            private uint p;
-            public StringReader(string stri) {
-                str = stri;
-                p = 0;
-            }
-
-            public char GetC(uint preview = 0) {
-                return !IsEndOfString(preview) ? str[(int)(p + preview)] : '\0';
-            }
-
-            public uint GetPosition() {
-                return p;
-            }
-
-            public char GetNext(uint indx = 1) {
-                p += indx;
-                return !IsEndOfString() ? str[(int)p] : '\0';
-            }
-
-            public char GetPrev(uint indx = 1) {
-                if (p - indx >= 0) {
-                    p -= indx;
-                    return str[(int) p];
-                }
-                return '\0';
-            }
-
-            public bool IsEndOfString(uint preview = 0) {
-                return p + preview >= str.Length;
-            }
-        }
-
         private static object ReadPrimitive(StringReader sr) {
             var c = sr.GetC();
 
@@ -62,7 +28,7 @@ namespace Ogam {
             }
 
             if (IsPair(c)) {
-                return ReadPair(sr);
+                return ReadList(sr);
             }
 
             if (IsQuote(c)) {
@@ -130,6 +96,7 @@ namespace Ogam {
                 case '(':
                     sr.GetPrev();
                     return ReadVector(sr);
+
                 case 'T':
                 case 't':
                     sr.GetNext();
@@ -144,8 +111,6 @@ namespace Ogam {
                     sr.GetPrev();
                     return ReadSymbol(sr);
             }
-
-            return null;
         }
 
         private static char ReadCharter(StringReader sr) {
@@ -154,6 +119,7 @@ namespace Ogam {
             if (sr.IsEndOfString()) {
                 throw new Exception(string.Format("READER:ReadCharter{0}Expected next symbol in {1} position", Environment.NewLine, sr.GetPosition()));
             }
+
             var c = sr.GetC();
             sr.GetNext();
             return c;
@@ -174,8 +140,6 @@ namespace Ogam {
             catch (Exception) {
                 throw new Exception(string.Format("READER:ReadNumber{0}Expected number in {1} position{0}Number destroyed:{0}\"{2}\"", Environment.NewLine, sr.GetPosition(), buf));
             }
-            
-            return null;
         }
 
         private static object ParseNumber(string str) {
@@ -190,9 +154,7 @@ namespace Ogam {
                 factor *= 0.1;
             }
 
-            var intval = int.Parse(str);
-            
-            return intval;
+            return int.Parse(str);
         }
 
         private static object ReadSymbol(StringReader sr) {
@@ -218,15 +180,12 @@ namespace Ogam {
                     return buf;
                 }
 
-                
-
                 if (c == '\\') {
                     while (c == '\\') {
                         sr.GetNext();
                         c = sr.GetC();
 
                         buf = string.Concat(buf, c);
-
                         sr.GetNext();
                         c = sr.GetC();
                     }
@@ -243,9 +202,9 @@ namespace Ogam {
             throw new Exception(string.Format("READER:ReadString{0}Expected symbol '\"' in {1} position{0}String destroyed:{0}\"{2}\"", Environment.NewLine, sr.GetPosition(), buf));
         }
 
-        private static Pair ReadPair(StringReader sr) {
-            var root = new Pair();
-            var last = root;
+        private static Pair ReadList(StringReader sr) {
+            var rootPair = new Pair();
+            var lastPair = rootPair;
 
             sr.GetNext();
 
@@ -255,28 +214,28 @@ namespace Ogam {
                 if (sr.GetC() == ')') { //ok
                     sr.GetNext();
 
-                    return root;
+                    return rootPair;
                 }
 
                 if (sr.GetC() == '.') {
                     sr.GetNext();
                     Skip(sr);
-                    last.Cdr = ReadPrimitive(sr);
+                    lastPair.Cdr = ReadPrimitive(sr);
                     continue;
                 }
 
-                if (last.Car != null) {
+                if (lastPair.Car != null) {
                     var newC = new Pair();
-                    last.Cdr = newC;
-                    last = newC;
+                    lastPair.Cdr = newC;
+                    lastPair = newC;
                 }
 
-                last.Car = ReadPrimitive(sr);
+                lastPair.Car = ReadPrimitive(sr);
             }
 
-            throw new Exception(string.Format("READER:ReadPair{0}Expected symbol ')' in {1} position{0}Expression destroyed:{0}{2}", Environment.NewLine, sr.GetPosition(), root.ToString()));
+            throw new Exception(string.Format("READER:ReadList{0}Expected symbol ')' in {1} position{0}Expression destroyed:{0}{2}", Environment.NewLine, sr.GetPosition(), rootPair.ToString()));
 
-            return root;
+            return rootPair;
         }
 
         private static void SkipWhite(StringReader sr) {
@@ -337,9 +296,38 @@ namespace Ogam {
             return c == '-' || c == '+';
         }
 
-        private static bool IsLeter(char c) {
-            const string dic = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM";
-            return dic.Any(chr => c == chr);
+        class StringReader {
+            private string str;
+            private uint p;
+            public StringReader(string stri) {
+                str = stri;
+                p = 0;
+            }
+
+            public char GetC(uint preview = 0) {
+                return !IsEndOfString(preview) ? str[(int)(p + preview)] : '\0';
+            }
+
+            public uint GetPosition() {
+                return p;
+            }
+
+            public char GetNext(uint indx = 1) {
+                p += indx;
+                return !IsEndOfString() ? str[(int)p] : '\0';
+            }
+
+            public char GetPrev(uint indx = 1) {
+                if (p - indx >= 0) {
+                    p -= indx;
+                    return str[(int)p];
+                }
+                return '\0';
+            }
+
+            public bool IsEndOfString(uint preview = 0) {
+                return p + preview >= str.Length;
+            }
         }
     }
 }
