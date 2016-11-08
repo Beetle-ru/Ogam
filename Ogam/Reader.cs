@@ -2,8 +2,8 @@
 using System.Linq;
 
 namespace Ogam {
-    public class Reader {
-        static public Pair Parse(string str) {
+    public static class Reader {
+        public static Pair Parse(string str) {
             var sr = new StringReader(str);
             var programm = new Pair();
 
@@ -251,7 +251,6 @@ namespace Ogam {
                 SkipComment(sr);
                 SkipWhite(sr);
             }
-
         }
 
         private static void SkipComment(StringReader sr) {
