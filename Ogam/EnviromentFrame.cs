@@ -40,5 +40,11 @@ namespace Ogam {
 
             return Parent.Get(ident);
         }
+
+        public bool Lookup(Symbol ident) {
+            if (Variables.ContainsKey(ident.Name)) return true;
+
+            return Parent != null && Parent.Lookup(ident);
+        }
     }
 }

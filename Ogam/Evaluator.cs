@@ -175,6 +175,9 @@ namespace Ogam {
                         stack.Push(Controll.Eval);
                         stack.Push(Operands(exp as Pair).Car);
                         break;
+                    case "lookup":
+                        val = env.Lookup(Operands(exp as Pair).Car as Symbol);
+                        break;
 
                     default: // APPLY
 
