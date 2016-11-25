@@ -295,7 +295,7 @@ namespace Ogam
                 }
                 else if (t.IsEnum)
                 {
-                    res.AppendLine($"result = (Days){arg}.AsObject();");
+                    res.AppendLine($"result = ({t.Name}){arg}.AsObject();");
                 }
                 else
                 {
