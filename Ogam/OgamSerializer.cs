@@ -187,13 +187,18 @@ namespace Ogam
                     var internalType = t.GetInterface("ICollection`1").GetGenericArguments()[0];
                     var internalTypeFullName = GetGenericTypeArguments(internalType);
 
-                    var defaultCondition = internalType.IsValueType ? $"el.Equals(default({internalTypeFullName}))" : "el==null";
+                    var defaultCondition = internalType.IsValueType
+                        ? $"el.Equals(default({internalTypeFullName}))"
+                        : "el==null";
+                    var defaultValue = internalType.IsEnum
+                        ? $"OgamSerializer.Serialize(default({internalTypeFullName}), typeof({internalTypeFullName}))"
+                        : "null";
 
                     res.AppendLine($"foreach (var el in (ICollection){arg})");
                     res.AppendLine("{");
 
                     res.AppendLine(!IsBaseType(internalType)
-                        ? $"var elPair = ({defaultCondition}) ? null : OgamSerializer.Serialize(el, typeof({internalTypeFullName}));"
+                        ? $"var elPair = ({defaultCondition}) ? {defaultValue} : OgamSerializer.Serialize(el, typeof({internalTypeFullName}));"
                         : $"var elPair = el;");
                     res.AppendLine("current = current.Add(elPair);");
 
@@ -217,7 +222,9 @@ namespace Ogam
                                 continue;
 
                             var internalTypeFullName = GetGenericTypeArguments(f.FieldType);
-                            var defaultCondition = f.FieldType.IsValueType ? $"argCasted.{f.Name}.Equals(default({internalTypeFullName}))" : $"argCasted.{f.Name}==null";
+                            var defaultCondition = f.FieldType.IsValueType
+                                ? $"argCasted.{f.Name}.Equals(default({internalTypeFullName}))"
+                                : $"argCasted.{f.Name}==null";
 
                             res.AppendLine("{");
 
@@ -236,7 +243,9 @@ namespace Ogam
                             var p = (PropertyInfo)mb;
 
                             var internalTypeFullName = GetGenericTypeArguments(p.PropertyType);
-                            var defaultCondition = p.PropertyType.IsValueType ? $"argCasted.{p.Name}.Equals(default({internalTypeFullName}))" : $"argCasted.{p.Name}==null";
+                            var defaultCondition = p.PropertyType.IsValueType
+                                ? $"argCasted.{p.Name}.Equals(default({internalTypeFullName}))"
+                                : $"argCasted.{p.Name}==null";
 
                             res.AppendLine("{");
 
