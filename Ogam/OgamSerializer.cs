@@ -187,17 +187,21 @@ namespace Ogam
                     var internalType = t.GetInterface("ICollection`1").GetGenericArguments()[0];
                     var internalTypeFullName = GetGenericTypeArguments(internalType);
 
-                    var defaultContition = internalType.IsValueType ? $"el.Equals(default({internalTypeFullName}))" : "el==null";
+                    var defaultCondition = internalType.IsValueType ? $"el.Equals(default({internalTypeFullName}))" : "el==null";
 
                     res.AppendLine($"foreach (var el in (ICollection){arg})");
                     res.AppendLine("{");
 
                     res.AppendLine(!IsBaseType(internalType)
-                        ? $"var elPair = ({defaultContition}) ? null : OgamSerializer.Serialize(el, typeof({internalTypeFullName}));"
+                        ? $"var elPair = ({defaultCondition}) ? null : OgamSerializer.Serialize(el, typeof({internalTypeFullName}));"
                         : $"var elPair = el;");
                     res.AppendLine("current = current.Add(elPair);");
 
                     res.AppendLine("}");
+                }
+                else if (t.IsEnum)
+                {
+                    res.AppendLine($"current = current.Add((int){arg});");
                 }
                 else
                 {
@@ -213,13 +217,13 @@ namespace Ogam
                                 continue;
 
                             var internalTypeFullName = GetGenericTypeArguments(f.FieldType);
-                            var defaultContition = f.FieldType.IsValueType ? $"argCasted.{f.Name}.Equals(default({internalTypeFullName}))" : $"argCasted.{f.Name}==null";
+                            var defaultCondition = f.FieldType.IsValueType ? $"argCasted.{f.Name}.Equals(default({internalTypeFullName}))" : $"argCasted.{f.Name}==null";
 
                             res.AppendLine("{");
 
                             res.AppendLine(IsBaseType(f.FieldType)
                                 ? $"var val = argCasted.{f.Name};"
-                                : $"var val = ({defaultContition}) ? null : OgamSerializer.Serialize(argCasted.{f.Name}, typeof({internalTypeFullName}));");
+                                : $"var val = ({defaultCondition}) ? null : OgamSerializer.Serialize(argCasted.{f.Name}, typeof({internalTypeFullName}));");
 
                             res.AppendLine(f.FieldType.GetInterfaces().Any(ie => ie == typeof(ICollection))
                                 ? $"current = current.Add(new Pair(\"{f.Name}\".ToSymbol(), val==null ? null : new Pair(val)));"
@@ -232,13 +236,13 @@ namespace Ogam
                             var p = (PropertyInfo)mb;
 
                             var internalTypeFullName = GetGenericTypeArguments(p.PropertyType);
-                            var defaultContition = p.PropertyType.IsValueType ? $"argCasted.{p.Name}.Equals(default({internalTypeFullName}))" : $"argCasted.{p.Name}==null";
+                            var defaultCondition = p.PropertyType.IsValueType ? $"argCasted.{p.Name}.Equals(default({internalTypeFullName}))" : $"argCasted.{p.Name}==null";
 
                             res.AppendLine("{");
 
                             res.AppendLine(IsBaseType(p.PropertyType)
                                 ? $"var val = argCasted.{p.Name};"
-                                : $"var val = ({defaultContition}) ? null : OgamSerializer.Serialize(argCasted.{p.Name}, typeof({internalTypeFullName}));");
+                                : $"var val = ({defaultCondition}) ? null : OgamSerializer.Serialize(argCasted.{p.Name}, typeof({internalTypeFullName}));");
 
                             res.AppendLine(p.PropertyType.GetInterfaces().Any(ie => ie == typeof(ICollection))
                                 ? $"current = current.Add(new Pair(\"{p.Name}\".ToSymbol(), val==null ? null : new Pair(val)));"
@@ -288,6 +292,10 @@ namespace Ogam
                     res.AppendLine($"if ({arg}.MoveNext() == null) break;");
 
                     res.AppendLine("}");
+                }
+                else if (t.IsEnum)
+                {
+                    res.AppendLine($"result = (Days){arg}.AsObject();");
                 }
                 else
                 {
