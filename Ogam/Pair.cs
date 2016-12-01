@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace Ogam {
@@ -90,8 +91,23 @@ namespace Ogam {
 
             var str = "";
             if (IsBaseType(o) || o is Pair || o is Symbol) {
+                if (o is decimal)
+                {
+                    str = ((decimal)o).ToString(CultureInfo.InvariantCulture);
+                }
+                else if (o is float)
+                {
+                    str = ((float)o).ToString(CultureInfo.InvariantCulture);
+                }
+                else if (o is double)
+                {
+                    str = ((double)o).ToString(CultureInfo.InvariantCulture);
+                }
+                else
+                {
                     str = o.ToString();
-                } else if (o is string) {
+                }
+            } else if (o is string) {
                     str = (string) o;
                     str = str.Replace("\\", "\\\\");
                     str = str.Replace("\"", "\\\"");
