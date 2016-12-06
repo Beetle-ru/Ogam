@@ -344,6 +344,15 @@ namespace Ogam
                         res.AppendLine($"result = new {GetGenericTypeArguments(t)}(Key, Value);");
                     }
                     else
+                    {
+                        res.AppendLine($"Pair p = {arg}; ");
+                        res.AppendLine("while (p != null) ");
+                        res.AppendLine("{");
+                        res.AppendLine("var car = p.Car as Pair; ");
+                        res.AppendLine("if (car != null) ");
+                        res.AppendLine("switch (car.Car.ToString())");
+                        res.AppendLine("{");
+
                         foreach (var mb in t.GetMembers())
                         {
                             if (mb is FieldInfo)
@@ -356,19 +365,19 @@ namespace Ogam
                                 var type = f.FieldType;
                                 var typeFullName = GetGenericTypeArguments(type);
 
+                                res.AppendLine($"case \"{f.Name}\":");
                                 res.AppendLine("{");
 
-                                res.AppendLine($"var pair = {arg}.AsObject() as Pair;");
                                 res.AppendLine(type.GetInterfaces().Any(ie => ie == typeof(ICollection))
-                                    ? "var prevalue = (Pair)pair.Cdr; var value = prevalue==null?null:prevalue.Car as Pair;"
-                                    : "var value = pair.Cdr;");
+                                    ? "var prevalue = (Pair)car.Cdr; var value = prevalue==null?null:prevalue.Car as Pair;"
+                                    : "var value = car.Cdr;");
 
                                 res.AppendLine(IsBaseType(type)
                                     ? $"result.{f.Name} = (value==null) ? default({type.Name}) : Convert.To{type.Name}(value);"
                                     : $"result.{f.Name} = ((Pair)value==null) ? default({typeFullName}) : ({typeFullName})OgamSerializer.Deserialize((Pair)value, typeof({typeFullName}));");
-                                res.AppendLine($"{arg}.MoveNext();");
 
                                 res.AppendLine("}");
+                                res.AppendLine("break;");
                             }
                             else if (mb is PropertyInfo)
                             {
@@ -377,21 +386,26 @@ namespace Ogam
                                 var type = p.PropertyType;
                                 var typeFullName = GetGenericTypeArguments(type);
 
+                                res.AppendLine($"case \"{p.Name}\":");
                                 res.AppendLine("{");
 
-                                res.AppendLine($"var pair = {arg}.AsObject() as Pair;");
                                 res.AppendLine(type.GetInterfaces().Any(ie => ie == typeof(ICollection))
-                                    ? "var prevalue = (Pair)pair.Cdr; var value = prevalue==null?null:prevalue.Car as Pair;"
-                                    : "var value = pair.Cdr;");
+                                    ? "var prevalue = (Pair)car.Cdr; var value = prevalue==null?null:prevalue.Car as Pair;"
+                                    : "var value = car.Cdr;");
 
                                 res.AppendLine(IsBaseType(type)
                                     ? $"result.{p.Name} = (value==null) ? default({type.Name}) : Convert.To{type.Name}(value);"
                                     : $"result.{p.Name} = ((Pair)value==null) ? default({typeFullName}) : ({typeFullName})OgamSerializer.Deserialize((Pair)value, typeof({typeFullName}));");
-                                res.AppendLine($"{arg}.MoveNext();");
 
                                 res.AppendLine("}");
+                                res.AppendLine("break;");
                             }
                         }
+
+                        res.AppendLine("}");
+                        res.AppendLine("p = p.Cdr as Pair; ");
+                        res.AppendLine("}");
+                    }
                 }
                 res.AppendLine("return result;");
                 return Regex.Replace(res.ToString(), "`[0-9]", string.Empty);
