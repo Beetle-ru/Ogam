@@ -51,6 +51,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Reader.cs" />
     <Compile Include="Pair.cs" />
+    <Compile Include="Remote\Tcp\TcpClientProcess.cs" />
     <Compile Include="Remote\Tcp\OClient.cs" />
     <Compile Include="Remote\Tcp\OServer.cs" />
     <Compile Include="State.cs" />

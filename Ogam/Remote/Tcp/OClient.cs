@@ -1,168 +1,90 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Ogam.Remote.Tcp {
     public class OClient {
-        private NetworkStream _networkStream;
-
-        private readonly IEvaluator _receivEvaluator;
-
-        public int BufferSize = 1048576;
-        public int ReadTimeout = 60000;
 
         public string Host;
         public int Port;
 
-        public string Name;
-        public bool IsLog = false;
+        public List<Flame> OclientPool;
 
-        private readonly object _sync = new object();
-
-        public OClient(string host, int port, string name = "") {
+        public OClient(string host, int port) {
             Host = host;
             Port = port;
 
-            if (string.IsNullOrWhiteSpace(name)) {
-                Name = Guid.NewGuid().ToString("N").Substring(0, 5);
-            }
-
-            _receivEvaluator = new Evaluator();
-            _receivEvaluator.Extend("throw-exception", ThrowException);
-
-            var connectionThread = new Thread(ConnectorHandler);
-            connectionThread.IsBackground = true;
-            connectionThread.Start();
+            OclientPool = new List<Flame>();
         }
 
-        private static object ThrowException(object[] arg) {
-            return new Exception(arg.StringAt(0));
+        private Flame GetFreeConnection() {
+            lock (OclientPool) {
+                for (var i = OclientPool.Count - 1; i >= 0; i--) {
+                    if (OclientPool[i].IsReadyToDeath) {
+                        OclientPool[i].Client.Dispose();
+                        OclientPool.RemoveAt(i);
+                    }
+                }
+
+                foreach (var oClient in OclientPool) {
+                    if ((!oClient.Client.IsBusy) && (!oClient.IsReadyToDeath)) return oClient;
+                }
+
+                var newOClient = new Flame(Host, Port);
+                OclientPool.Add(newOClient);
+
+                while (newOClient.Client.IsBusy) {
+                    Thread.Sleep(100);
+                }
+
+                return newOClient;
+            }
         }
 
         public object MakeCall(string operation, params object[] args) {
-
-            var cmd = "(" + operation;
-            foreach (var o in args) {
-                cmd += string.Format(" {0}", OgamSerializer.Serialize(o));
-            }
-            cmd += ")";
-
-            var result = Call(cmd);
-
-            if (result is Exception) {
-                throw result as Exception; // !!! REMOTE SERVER RETURN EXCEPTION !!!
-            }
-
-            return result;
+            return GetFreeConnection().MakeCall(operation, args);
         }
 
         public object Call(string cmd) {
-            lock (_sync) {
+            return GetFreeConnection().Call(cmd);
+        }
 
+        public class Flame {
+            public TcpClientProcess Client;
+            private static int timeout = 60000;
+            private int timeCounter;
+            private Timer _tOuTimer;
+            public bool IsReadyToDeath = false;
 
-                if (string.IsNullOrWhiteSpace(cmd)) return "";
+            public Flame(string host, int port) {
+                Client = new TcpClientProcess(host, port);
 
-                try {
-                    if (_networkStream == null) {
-                        Console.WriteLine($"(connection-error \"[{Name}]{Host}:{Port}\" \"Connection is fault\")");
-                        return null;
+                timeCounter = timeout;
+
+                _tOuTimer = new Timer(state => {
+                    if (timeCounter > 0) {
+                        timeCounter--;
                     }
-
-                    if (_networkStream.CanWrite && _networkStream.CanRead) {
-
-                        var transactLog = new StringBuilder();
-                        transactLog.AppendLine($"(start-transaction \"[{Name}]{Host}:{Port}\")");
-
-                        var buff = Encoding.Unicode.GetBytes(cmd + '\0'); // add EOS
-                        _networkStream.Write(buff, 0, buff.Length);
-
-                        transactLog.AppendLine($"<< {cmd}");
-
-                        buff = new byte[BufferSize];
-                        var bytes = _networkStream.Read(buff, 0, buff.Length);
-
-                        var rcvMsg = Encoding.Unicode.GetString(buff, 0, bytes);
-
-                        var timeBefore = DateTime.Now;
-                        
-                        while (true) {
-                            while (_networkStream.DataAvailable) {
-                                bytes = _networkStream.Read(buff, 0, buff.Length);
-                                rcvMsg += Encoding.Unicode.GetString(buff, 0, bytes);
-                                //Thread.Sleep(100); // TODO make end sequenses support
-                            }
-
-                            if (rcvMsg.Length > 0 && rcvMsg.Last() == '\0') break; // EOS
-
-                            if (timeBefore.AddSeconds(10) <= DateTime.Now) break; // timeOut
-
-                            if (!_networkStream.DataAvailable) {
-                                Thread.Sleep(50);
-                            }
-                        }
-
-
-                        transactLog.AppendLine($">> {rcvMsg}");
-
-                        if (IsLog) {
-                            Console.WriteLine(transactLog.ToString().Trim());
-                        }
-
-                        var resultO = _receivEvaluator.Eval(rcvMsg);
-
-                        return resultO;
-                    } 
                     else {
-                        Console.WriteLine($"(connection-error \"[{Name}]{Host}:{Port}\" \"Data can't write\")");
+                        IsReadyToDeath = true;
+                        //_tOuTimer.Change(-1, -1);
+                        _tOuTimer.Dispose();
                     }
-                } catch (Exception ex) {
-                    Console.WriteLine($"(connection-error \"[{Name}]{Host}:{Port}\" \"{ex.Message}\")");
-                }
-
-                return null;
-            }
-        }
-
-        private TcpClient Connect(string hostname, int port) {
-            lock (_sync) {
-
-
-                
-                Console.WriteLine($"(connecting \"{hostname}:{port}\")");
-                var client = new TcpClient();
-                client.ReceiveTimeout = ReadTimeout;
-                client.SendTimeout = ReadTimeout;
-
-                try {
-                    client.Connect(hostname, port);
-
-                    _networkStream = client.GetStream();
-                    _networkStream.WriteTimeout = ReadTimeout;
-                    _networkStream.ReadTimeout = ReadTimeout;
-                    Console.WriteLine($"(connection-stabilized \"{hostname}:{port}\")");
-                }
-                catch (Exception ex) {
-                    Console.WriteLine($"(connection-error \"{ex.Message}\")");
-                }
-
-                return client;
-            }
-        }
-
-        private void ConnectorHandler(object o) {
-            var client = Connect(Host, Port);
-
-            while (true) {
-                Thread.Sleep(1000);
-                if (!client.Connected) {
-                    client = Connect(Host, Port);
-                }
+                });
+                _tOuTimer.Change(1000, 1000);
             }
 
+            public object MakeCall(string operation, params object[] args) {
+                timeCounter = timeout;
+                return Client.MakeCall(operation, args);
+            }
+
+            public object Call(string cmd) {
+                timeCounter = timeout;
+                return Client.Call(cmd);
+            }
         }
     }
 }
