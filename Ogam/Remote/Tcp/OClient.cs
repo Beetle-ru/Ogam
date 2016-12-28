@@ -22,7 +22,7 @@ namespace Ogam.Remote.Tcp {
         private Flame GetFreeConnection() {
             lock (OclientPool) {
                 for (var i = OclientPool.Count - 1; i >= 0; i--) {
-                    if (OclientPool[i].IsReadyToDeath) {
+                    if (OclientPool[i].IsReadyToDeath && (!OclientPool[i].Client.IsBusy)) {
                         OclientPool[i].Client.Dispose();
                         OclientPool.RemoveAt(i);
                     }
@@ -53,7 +53,7 @@ namespace Ogam.Remote.Tcp {
 
         public class Flame {
             public TcpClientProcess Client;
-            private static int timeout = 60000;
+            private static int timeout = 600;
             private int timeCounter;
             private Timer _tOuTimer;
             public bool IsReadyToDeath = false;
