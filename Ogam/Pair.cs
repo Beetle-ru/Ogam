@@ -32,7 +32,7 @@ namespace Ogam {
             }
             cndr.Cdr = new Pair(o);
 
-			return cndr.Cdr as Pair;
+            return cndr.Cdr as Pair;
         }
 
         public override string ToString() {
@@ -48,7 +48,7 @@ namespace Ogam {
             //str += Car != null ? O2String(Car) : "()";
 
             sb.Append(Car != null ? O2String(Car) : "()");
-            
+
             if (Cdr is Pair) {
                 var cndr = Cdr as Pair;
                 while (cndr != null) {
@@ -68,8 +68,6 @@ namespace Ogam {
                         break;
                     }
                 }
-
-                
             }
             else {
                 if (Cdr != null) {
@@ -80,7 +78,7 @@ namespace Ogam {
                 }
             }
 
-            
+
             sb.Append(")");
             return sb.ToString();
             //return str + ")";
@@ -91,33 +89,33 @@ namespace Ogam {
 
             var str = "";
             if (IsBaseType(o) || o is Pair || o is Symbol) {
-                if (o is decimal)
-                {
-                    str = ((decimal)o).ToString(CultureInfo.InvariantCulture);
+                if (o is decimal) {
+                    str = ((decimal) o).ToString(CultureInfo.InvariantCulture);
                 }
-                else if (o is float)
-                {
-                    str = ((float)o).ToString(CultureInfo.InvariantCulture);
+                else if (o is float) {
+                    str = ((float) o).ToString(CultureInfo.InvariantCulture);
                 }
-                else if (o is double)
-                {
-                    str = ((double)o).ToString(CultureInfo.InvariantCulture);
+                else if (o is double) {
+                    str = Convert.ToDecimal((double) o).ToString(CultureInfo.InvariantCulture);
                 }
-                else
-                {
+                else {
                     str = o.ToString();
                 }
-            } else if (o is string) {
-                    str = (string) o;
-                    str = str.Replace("\\", "\\\\");
-                    str = str.Replace("\"", "\\\"");
-                    str = (string.Format("\"{0}\"", str));
-                } else if (o is bool) {
-                    str = string.Format("{0}", ((bool)o ? "#t" : "#f"));
-                } else {
-                    //strs.Add(string.Format(" \"{0}\"", Pack(o)));
-                    str = string.Format("\"{0}\"", o.ToString());
-                }
+            }
+            else if (o is string) {
+                str = (string) o;
+                str = str.Replace("\\", "\\\\");
+                str = str.Replace("\"", "\\\"");
+                str = (string.Format("\"{0}\"", str));
+            }
+            else if (o is bool) {
+                str = string.Format("{0}", ((bool) o ? "#t" : "#f"));
+            } else if (o is DateTime) {
+                str = string.Format("\"{0}\"", ((DateTime)o).ToString("dd.MM.yyyy hh: mm:ss.fff"));
+            } else {
+                //strs.Add(string.Format(" \"{0}\"", Pack(o)));
+                str = string.Format("\"{0}\"", o.ToString());
+            }
 
 
             return str;
@@ -136,10 +134,9 @@ namespace Ogam {
                    || (o is ulong)
                    || (o is short)
                    || (o is ushort);
-    }
+        }
 
         public object ObjecttAt(int position) {
-
             var cndr = this;
 
             for (var i = 0; i < position; i++) {
@@ -206,7 +203,7 @@ namespace Ogam {
                 //Car = null;
                 //Cdr = null;
             }
-            
+
             return this;
         }
 
