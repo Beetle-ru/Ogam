@@ -111,7 +111,7 @@ namespace Ogam {
             else if (o is bool) {
                 str = string.Format("{0}", ((bool) o ? "#t" : "#f"));
             } else if (o is DateTime) {
-                str = string.Format("\"{0}\"", ((DateTime)o).ToString("dd.MM.yyyy hh: mm:ss.fff"));
+                str = string.Format("\"{0}\"", ((DateTime)o).ToString("dd.MM.yyyy HH:mm:ss.fff"));
             } else {
                 //strs.Add(string.Format(" \"{0}\"", Pack(o)));
                 str = string.Format("\"{0}\"", o.ToString());
