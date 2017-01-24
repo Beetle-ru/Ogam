@@ -2,6 +2,7 @@
 using System.CodeDom.Compiler;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -223,27 +224,28 @@ namespace Ogam
                 res.AppendLine("var result = new Pair();");
                 res.AppendLine("var current = result;");
 
-                //if (t.GetInterfaces().Any(ie => ie == typeof(ICollection))) {
+                if (t.GetInterfaces().Any(ie => ie == typeof(ICollection))) {
                     if (t.GetInterfaces().Any(ie => ie.Name == "ICollection`1")) {
-                    var internalType = t.GetInterface("ICollection`1").GetGenericArguments()[0];
-                    var internalTypeFullName = GetGenericTypeArguments(internalType);
+                        var internalType = t.GetInterface("ICollection`1").GetGenericArguments()[0];
+                        var internalTypeFullName = GetGenericTypeArguments(internalType);
 
-                    var defaultCondition = internalType.IsValueType
-                        ? $"el.Equals(default({internalTypeFullName}))"
-                        : "el==null";
-                    var defaultValue = internalType.IsEnum
-                        ? $"OgamSerializer.Serialize(default({internalTypeFullName}), typeof({internalTypeFullName}))"
-                        : "null";
+                        var defaultCondition = internalType.IsValueType
+                            ? $"el.Equals(default({internalTypeFullName}))"
+                            : "el==null";
+                        var defaultValue = internalType.IsEnum
+                            ? $"OgamSerializer.Serialize(default({internalTypeFullName}), typeof({internalTypeFullName}))"
+                            : "null";
 
-                    res.AppendLine($"foreach (var el in (ICollection){arg})");
-                    res.AppendLine("{");
+                        res.AppendLine($"foreach (var el in (ICollection){arg})");
+                        res.AppendLine("{");
 
-                    res.AppendLine(!IsBaseType(internalType)
-                        ? $"var elPair = ({defaultCondition}) ? {defaultValue} : OgamSerializer.Serialize(el, typeof({internalTypeFullName}));"
-                        : $"var elPair = el;");
-                    res.AppendLine("current = current.Add(elPair);");
+                        res.AppendLine(!IsBaseType(internalType)
+                            ? $"var elPair = ({defaultCondition}) ? {defaultValue} : OgamSerializer.Serialize(el, typeof({internalTypeFullName}));"
+                            : $"var elPair = el;");
+                        res.AppendLine("current = current.Add(elPair);");
 
-                    res.AppendLine("}");
+                        res.AppendLine("}");
+                    }
                 }
                 else if (t.IsEnum)
                 {
@@ -253,7 +255,7 @@ namespace Ogam
                 {
                     res.AppendLine($"var argCasted = ({GetGenericTypeArguments(t)}){arg};");
 
-                    foreach (var mb in t.GetMembers())
+                    foreach (var mb in t.GetMembers(BindingFlags.Instance | BindingFlags.Public).Where(mi=> mi.DeclaringType != typeof(CultureInfo)))
                     {
                         if (mb is FieldInfo)
                         {
@@ -394,7 +396,7 @@ namespace Ogam
                         res.AppendLine("switch (car.Car.ToString())");
                         res.AppendLine("{");
 
-                        foreach (var mb in t.GetMembers())
+                        foreach (var mb in t.GetMembers(BindingFlags.Instance | BindingFlags.Public).Where(mi => mi.DeclaringType != typeof(CultureInfo)))
                         {
                             if (mb is FieldInfo)
                             {
