@@ -99,7 +99,7 @@ namespace Ogam
             }
 
             // ADDITIONAL FOR CONCRETE TYPE
-            foreach (var nmsp in GetTypeNamespaces(target).Where(t => !RequiredNamespaces.Contains(t)))
+            foreach (var nmsp in GetTypeNamespaces2(target).Where(t => !RequiredNamespaces.Contains(t)))
             {
                 srcBuilder.AppendLine($"using {nmsp};");
             }
@@ -146,11 +146,52 @@ namespace Ogam
         {
             var res = new List<string>();
             res.Add(t.Namespace);
-            if (t.IsGenericType)
-            {
+            if (t.IsGenericType) {
                 Array.ForEach<Type>(t.GetGenericArguments(), tt => res.AddRange(GetTypeNamespaces(tt)));
             }
+            
+
             return res.Distinct().ToList();
+        }
+
+        private static ICollection<string> GetTypeNamespaces2(Type t) {
+            var res = new List<string>();
+            res.Add(t.Namespace);
+
+            foreach (var propertyInfo in t.GetProperties()) {
+                res.Add(propertyInfo.PropertyType.Namespace);
+                res.AddRange(GetIcollectionsNamespaces(propertyInfo.PropertyType));
+            }
+
+            foreach (var fieldInfo in t.GetFields()) {
+                res.Add(fieldInfo.FieldType.Namespace);
+                res.AddRange(GetIcollectionsNamespaces(fieldInfo.FieldType));
+            }
+
+            foreach (var methodInfo in t.GetMethods()) {
+                res.Add(methodInfo.ReturnType.Namespace);
+                res.AddRange(GetIcollectionsNamespaces(methodInfo.ReturnType));
+
+                foreach (var genericArgument in methodInfo.GetGenericArguments()) {
+                    res.Add(genericArgument.Namespace);
+                    res.AddRange(GetIcollectionsNamespaces(genericArgument));
+                }
+            }
+
+            return res.Distinct().ToList();
+        }
+
+        private static ICollection<string> GetIcollectionsNamespaces(Type t) {
+            var res = new List<string>();
+            foreach (var inter in t.GetInterfaces()) {
+                if (inter.Name.StartsWith("ICollection")) {
+                    var internalTypes = inter.GetGenericArguments();
+                    foreach (var interType in internalTypes) {
+                        res.Add(interType.Namespace);
+                    }
+                }
+            }
+            return res;
         }
 
         private static string GetGenericTypeArguments(Type t, bool withTypeName = true)
@@ -182,8 +223,8 @@ namespace Ogam
                 res.AppendLine("var result = new Pair();");
                 res.AppendLine("var current = result;");
 
-                if (t.GetInterfaces().Any(ie => ie == typeof(ICollection)))
-                {
+                //if (t.GetInterfaces().Any(ie => ie == typeof(ICollection))) {
+                    if (t.GetInterfaces().Any(ie => ie.Name == "ICollection`1")) {
                     var internalType = t.GetInterface("ICollection`1").GetGenericArguments()[0];
                     var internalTypeFullName = GetGenericTypeArguments(internalType);
 
@@ -419,3 +460,8 @@ namespace Ogam
         Delegate GetResult();
     }
 }
+
+
+
+
+
