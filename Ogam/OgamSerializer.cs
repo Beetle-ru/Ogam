@@ -142,9 +142,13 @@ namespace Ogam {
             foreach (var mb in t.GetMembers(BindingFlags.Instance | BindingFlags.Public)) {
                 if (mb is FieldInfo) {
                     var f = (FieldInfo)mb;
+                    if (IsBaseType(f.FieldType))
+                        continue;
                     res.AddRange(GetTypeNamespaces(f.FieldType));
                 } else if (mb is PropertyInfo) {
                     var p = (PropertyInfo)mb;
+                    if (IsBaseType(p.PropertyType))
+                        continue;
                     res.AddRange(GetTypeNamespaces(p.PropertyType));
                 }
             }
