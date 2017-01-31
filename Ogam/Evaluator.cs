@@ -217,14 +217,23 @@ namespace Ogam {
 
             var cond = Eval(arguments.Car, ref enviroment);
 
-            var chrCond = Convert.ToBoolean(cond);
+            //var chrCond = Convert.ToBoolean(cond);
 
-            if (chrCond) {
+            if (IsTrue(cond)) {
                 stack.Push(Pair.GetCarOrNull(Pair.GetCdrOrNull(arguments)));
                 return;
             }
 
             stack.Push(Pair.GetCarOrNull(Pair.GetCdrOrNull(Pair.GetCdrOrNull(arguments))));
+        }
+
+        public static bool IsTrue(object o) {
+            if (o == null)
+                return false;
+            if (o is Boolean)
+                return (Boolean)o;
+            else
+                return true;
         }
 
         private object MakeLambda(Pair arguments, EnviromentFrame enviroment) {

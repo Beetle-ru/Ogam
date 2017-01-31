@@ -76,9 +76,11 @@ namespace Testing {
             result = "(+ 111 222 333)".OgamEval();
             result = "(if #t 1 2)".OgamEval();
             result = "(if #f 1 2)".OgamEval();
+            result = "(if 0 1 2)".OgamEval();
 
             result = "(if #t 1)".OgamEval();
             result = "(if #f 1)".OgamEval();
+            result = "(if 0 1)".OgamEval();
 
             result = "\"some string\"".OgamEval();
             result = "132".OgamEval();
