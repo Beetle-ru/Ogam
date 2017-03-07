@@ -33,7 +33,7 @@ namespace Ogam {
                 throw new ArgumentException(
                     "This method should not be used with base types (Primitive, Decimal, String, DateTime)");
 
-            if (!Serializers.ContainsKey(t))
+            if (Serializers.ContainsKey(t))
                 return Serializers[t](data);
             lock (Serializers) {
                 if (!Serializers.ContainsKey(t)) {
