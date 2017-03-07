@@ -59,7 +59,7 @@ namespace Ogam {
 
         public override void WriteLine(string s) {
             ((Action)delegate () {
-                LogEvent(string.Format(s));
+                LogEvent(s);
             }).BeginInvoke(null, null);
         }
 

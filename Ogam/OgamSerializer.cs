@@ -33,9 +33,12 @@ namespace Ogam {
                 throw new ArgumentException(
                     "This method should not be used with base types (Primitive, Decimal, String, DateTime)");
 
-            if (!Serializers.ContainsKey(t)) {
-                var res = GetCompiledResult(t, true);
-                Serializers.Add(t, res.GetResult() as Func<object, Pair>);
+            if (!Serializers.ContainsKey(t))
+                return Serializers[t](data);
+            lock (Serializers) {
+                if (!Serializers.ContainsKey(t)) {
+                    Serializers.Add(t, GetCompiledResult(t, true).GetResult() as Func<object, Pair>);
+                }
             }
             return Serializers[t](data);
         }
@@ -61,9 +64,13 @@ namespace Ogam {
                 throw new ArgumentException(
                     "This method should not be used with base types (Primitive, Decimal, String, DateTime)");
 
-            if (!Deserializers.ContainsKey(t)) {
-                var res = GetCompiledResult(t, false);
-                Deserializers.Add(t, res.GetResult() as Func<Pair, object>);
+
+            if (Deserializers.ContainsKey(t))
+                 return Deserializers[t](data);
+            lock (Deserializers) {
+                if (!Deserializers.ContainsKey(t)) {
+                    Deserializers.Add(t, GetCompiledResult(t, false).GetResult() as Func<Pair, object>);
+                }
             }
             return Deserializers[t](data);
         }
