@@ -208,6 +208,13 @@ namespace Ogam {
                     res.AppendLine("}");
                 } else if (t.IsEnum) {
                     res.AppendLine($"current = current.Add((int){arg});");
+                } else if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>)) {
+                    var ut = t.GetGenericArguments()[0];
+
+                    res.AppendLine($"if ({arg}!=null)");
+                    res.AppendLine(IsBaseType(ut)
+                        ? $"current = current.Add({arg});"
+                        : $"current = current.Add(OgamSerializer.Serialize({arg}, typeof({GetGenericTypeArguments(ut)})));");
                 } else {
                     res.AppendLine($"var argCasted = ({GetGenericTypeArguments(t)}){arg};");
 
@@ -294,6 +301,12 @@ namespace Ogam {
                     res.AppendLine("}");
                 } else if (t.IsEnum) {
                     res.AppendLine($"result = ({t.Name}){arg}.AsObject();");
+                } else if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>)) {
+                    var ut = t.GetGenericArguments()[0];
+                    var typeFullName = GetGenericTypeArguments(ut);
+                    res.AppendLine(IsBaseType(ut)
+                        ? $"result = Convert.To{ut.Name}({arg}.Car);"
+                        : $"result = ({typeFullName})OgamSerializer.Deserialize((Pair){arg}.Car, typeof({typeFullName}));");
                 } else {
                     if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(KeyValuePair<,>)) {
                         var types = t.GetGenericArguments();
