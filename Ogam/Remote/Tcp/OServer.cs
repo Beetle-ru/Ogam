@@ -12,16 +12,18 @@ using System.Threading.Tasks;
 namespace Ogam.Remote.Tcp {
     public class OServer {
         private readonly TcpListener _listener;
+        private readonly ILogExternal _logExternal;
         private Thread listerThread;
         public int BufferSize = 1048576;
         public IEvaluator Evaluator;
 
-        public OServer(int Port, IEvaluator evaluator = null) {
+        public OServer(int Port, IEvaluator evaluator = null, ILogExternal logExternal = null) {
             Console.SetOut(new LogTextWriter(Console.Out));
 
             if (evaluator == null) {
                 Evaluator = StingExtension.Evaluator;
             }
+            _logExternal = logExternal;
             _listener = new TcpListener(IPAddress.Any, Port);
             _listener.Start();
 
@@ -103,6 +105,8 @@ namespace Ogam.Remote.Tcp {
                         transactLog.AppendLine($"(stack-trace \"{ex.StackTrace}\")");
 
                         Console.ResetColor();
+                        if (_logExternal != null)
+                            _logExternal.Error(ex.Message, ex);
                     }
 
                     Console.WriteLine(transactLog.ToString().Trim());
