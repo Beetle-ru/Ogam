@@ -44,6 +44,7 @@
     <Compile Include="Continuation.cs" />
     <Compile Include="EnviromentFrame.cs" />
     <Compile Include="IEvaluator.cs" />
+    <Compile Include="ILogExternal.cs" />
     <Compile Include="Lambda.cs" />
     <Compile Include="LogTextWriter.cs" />
     <Compile Include="Evaluator.cs" />
