@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Ogam {
     public static class StingExtension {
@@ -32,7 +33,8 @@ namespace Ogam {
         public static object OgamEval(this string expr, IEvaluator evaluator, params object[] args) {
             if (string.IsNullOrWhiteSpace(expr)) return null;
 
-            return evaluator.Eval(String.Format(expr, O2Strings(args)));
+
+            return (args?.Any() ?? false) ? evaluator.Eval(string.Format(expr, O2Strings(args))) : evaluator.Eval(expr);
         }
 
         private static object[] O2Strings(object[] args) {

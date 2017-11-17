@@ -271,7 +271,13 @@ namespace Ogam {
                 #region DESERIALIZER DEFINITION
 
                 StringBuilder res = new StringBuilder();
-                res.AppendLine($"var result = new {GetGenericTypeArguments(t)}();");
+                if (t.IsArray) {
+                    var internalType = t.GetInterface("ICollection`1").GetGenericArguments()[0];
+                    var internalTypeFullName = GetGenericTypeArguments(internalType);
+                    res.AppendLine($"var result = new List<{internalTypeFullName}>();");
+                }
+                else
+                    res.AppendLine($"var result = new {GetGenericTypeArguments(t)}();");
 
                 if (t.GetInterfaces().Any(ie => ie == typeof(ICollection))) {
                     var internalType = t.GetInterface("ICollection`1").GetGenericArguments()[0];
@@ -400,7 +406,11 @@ namespace Ogam {
                         res.AppendLine("}");
                     }
                 }
-                res.AppendLine("return result;");
+                if (t.IsArray) {
+                    res.AppendLine("return result.ToArray();");
+                }
+                else
+                    res.AppendLine("return result;");
                 return Regex.Replace(res.ToString(), "`[0-9]", string.Empty);
 
                 #endregion
