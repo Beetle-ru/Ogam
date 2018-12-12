@@ -22,6 +22,9 @@ namespace Ogam {
         }
 
         void LogEvent(string msg) {
+            if (string.IsNullOrEmpty(msg))
+                return;
+
             ((Action)delegate () {
                 var standardOutput = new StreamWriter(Console.OpenStandardOutput(), Console.OutputEncoding);
                 standardOutput.AutoFlush = true;
@@ -149,7 +152,7 @@ namespace Ogam {
 
         public override void WriteLine(object o) {
             ((Action)delegate () {
-                LogEvent(o.ToString());
+                LogEvent(o?.ToString());
             }).BeginInvoke(null, null);
         }
 
